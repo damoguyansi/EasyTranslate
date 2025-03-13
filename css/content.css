@@ -8,6 +8,7 @@
     pointer-events: auto; /* 确保可点击 */
     z-index: 10000; /* 确保在最上层 */
 }
+
 .translation-window {
     background-color: #fff;
     border: 1px solid #ccc;
@@ -42,6 +43,7 @@
 .translation-content .close-btn:hover {
     background-color: #005bb5;
 }
+
 /* css/content.css */
 #custom-icon {
     position: absolute;
@@ -51,8 +53,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 9999;
+    z-index: 99999999;
 }
+
 #custom-icon svg {
     margin: 0px;
     padding: 0px;
@@ -61,7 +64,6 @@
 }
 
 /** 弹出框 **/
-
 .translation-popup {
     background-color: #fff;
     border: 1px solid #ccc;
@@ -70,9 +72,11 @@
     width: 300px;
     font-family: Arial, sans-serif;
     z-index: 10000;
+    color: black;
 }
 
 .popup-header {
+    all: unset;
     display: flex;
     align-items: center;
     padding: 5px 10px;
@@ -86,20 +90,32 @@
 }
 
 .popup-header select {
+    all: unset;
     margin: 0 5px;
     padding: 2px;
     font-size: 12px;
     border: 1px solid #ccc;
     border-radius: 3px;
+    width: 50px;
+    height: 20px;
+    line-height: 20px;
 }
 
 .popup-header .refresh-btn,
 .popup-header .close-btn {
+    all: unset;
     background: none;
     border: none;
     font-size: 14px;
     cursor: pointer;
-    padding: 2px 5px;
+    line-height: 100%;
+    padding: 0 5px;
+}
+
+.popup-header button {
+    all: unset;
+    width: 10px !important;
+    height: 10px !important;
 }
 
 .popup-header .refresh-btn {
@@ -121,4 +137,10 @@
 
 .popup-content p strong {
     color: #333;
+}
+
+.popup-content-title {
+    all: unset;
+    font-size: 14px;
+    font-weight: bold;
 }
