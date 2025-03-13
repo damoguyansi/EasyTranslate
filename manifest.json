@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "__MSG_name__",
+  "version": "1.0.0",
+  "description": "__MSG_description__",
+  "default_locale": "zh_CN",
+  "permissions": [
+    "activeTab",
+    "contextMenus",
+    "scripting"
+  ],
+  "host_permissions": [ 
+    "https://edge.microsoft.com/*"
+  ],
+  "action": {
+    "default_popup": "html/popup.html",
+    "default_icon": "/img/icon128.png"
+  },
+  "icons": {
+    "16": "./img/icon16.png",
+    "32": "./img/icon32.png",
+    "48": "./img/icon48.png",
+    "128": "./img/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["js/language.js","js/content.js","js/translate.js"],
+      "css": ["css/content.css"]
+    }
+  ],
+  "background": {
+    "service_worker": "js/background.js"
+  }
+}

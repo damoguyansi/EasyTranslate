@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EasyTranslate - 网页翻译｜在线翻译｜划词翻译｜永久免费</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            margin: 10px;
+            width: 520px; /* 整个窗口宽度 */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+            background-color: #ffffff;
+        }
+        .container {
+            text-align: center;
+        }
+        .trans-ctx--container-header {
+            margin-bottom: 10px;
+        }
+        .header {
+            display: flex;
+            align-items: center; /* 垂直居中 */
+            justify-content: flex-start; /* 靠左对齐 */
+        }
+        .header .trans-ctx--icon-logo {
+            width: 32px; /* 假设图标大小为 32x32px */
+            height: 32px;
+            margin-right: 8px; /* 文字与图标之间的间距 */
+        }
+        .header span {
+            font-size: 16px;
+            color: #0078d4; /* 匹配 Microsoft 蓝色 */
+            font-weight: bold;
+        }
+        .language-select {
+            display: flex;
+            justify-content: space-between; /* 让元素均匀分布 */
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .language-select select {
+            width: 220px; /* 让下拉框变宽，占满可用空间 */
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff;
+            font-size: 14px;
+        }
+        .switch-btn {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px; /* 固定宽度以适应 SVG 图标 */
+            height: 28px; /* 匹配 select 高度 */
+        }
+        .switch-btn svg {
+            width: 1em;
+            height: 1em;
+            fill: currentColor;
+            opacity: 0.9;
+        }
+        .input-area, .output-area {
+            width: 490px; /* 输入输出框宽度 */
+            height: 100px;
+            margin-bottom: 5px;
+            padding: 10px;
+            border: none; /* 去掉边框 */
+            border-radius: 4px;
+            resize: none;
+            font-size: 14px;
+            background-color: #fff;
+        }
+        .input-area:focus, .output-area:focus {
+            outline: none; /* 移除聚焦时的默认边框 */
+        }
+        .divider {
+            width: 100%;
+            height: 1px;
+            background-color: #eee; /* 灰色分割线 */
+            margin: 10px 0;
+        }
+        .char-count {
+            text-align: right;
+            font-size: 12px;
+            color: #666;
+        }
+        .footer {
+            font-size: 12px;
+            color: #0078d4;
+            margin-top: 10px;
+            text-align: left;
+        }
+        .footer a {
+            color: #0078d4;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="trans-ctx--container-header">
+            <div class="header">
+                <img class="trans-ctx--icon-logo" src="../img/icon32.png" alt="Logo">
+                <span>EasyTranslate 简单翻译</span>
+            </div>
+        </div>
+        <div class="language-select">
+            <select id="sourceLang">
+                <option value="en">英语</option>
+                <option value="zh-Hans">中文(简体)</option>
+            </select>
+            <button class="switch-btn" id="switchLang">
+                <svg fill="none" viewBox="0 0 16 16" width="1em" height="1em" class="t-icon t-icon-swap trans-ctx--swap-icon">
+                    <path fill="currentColor" d="M1.25 6h11.76L9.16 2.25l.7-.71 4.67 4.55c.34.33.1.91-.37.91H1.25V6zM14.75 10H3.02l3.81 3.6-.69.73-4.67-4.41A.53.53 0 011.84 9h12.91v1z" fill-opacity="0.9"></path>
+                </svg>
+            </button>
+            <select id="targetLang">
+                <option value="zh-Hans">中文(简体)</option>
+                <option value="en">英语</option>
+            </select>
+        </div>
+        <textarea id="inputText" class="input-area" placeholder="请输入..."></textarea>
+        <div class="divider"></div> <!-- 灰色分割线 -->
+        <textarea id="outputText" class="output-area" placeholder="" readonly></textarea>
+        <div class="char-count" id="charCount">0/500</div>
+        <div class="footer">
+            欢迎使用EasyTranslate简单翻译插件
+            <span style="float: right;">
+                <a target="_blank" href="https://github.com/damoguyansi/EasyTranslate.git">问题反馈 - 加个Star</a>
+            </span>
+        </div>
+    </div>
+    <script src="../js/language.js"></script>
+    <script src="../js/translate.js"></script>
+    <script src="../js/popup.js"></script>
+</body>
+</html>
