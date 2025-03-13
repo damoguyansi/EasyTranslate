@@ -61,11 +61,11 @@ function showTranslationPopup(originalText, x, y, fromLang, toLang) {
         </div>
         <div class="popup-content">
             <div style="border-bottom: solid 1px #eee;padding: 10px 0px;">
-                <div style="font-size:14px;font-weight: bold;">原文:</div> 
+                <div class="popup-content-title">原文:</div> 
                 <div>${originalText}</div>
             </div>
             <div style="padding: 10px 0px;">
-                <div style="font-size:14px;font-weight: bold;">译文:</div> 
+                <div class="popup-content-title">译文:</div> 
                 <div id="translated-text">加载中...</div>
             </div>
         </div>
@@ -193,14 +193,16 @@ document.addEventListener('mouseup', function (event) {
     if (icon && icon.contains(event.target)) return;
     if (popup && popup.contains(event.target)) return;
 
-    const selection = window.getSelection();
-    const selectedText = selection.toString().trim();
-    console.log("选中：" + selectedText);
-    if (selectedText) {
-        createIcon(selectedText, event.pageX, event.pageY + 10); // 在选中文本下显示图标
-    } else {
-        closeIconAndPopup();
-    }
+    setTimeout(() => {
+        const selection = window.getSelection();
+        const selectedText = selection.toString().trim();
+        console.log("选中：" + selectedText);
+        if (selectedText) {
+            createIcon(selectedText, event.pageX, event.pageY + 10); // 在选中文本下显示图标
+        } else {
+            closeIconAndPopup();
+        }
+    }, 10);
 });
 
 document.addEventListener('mousedown', function (event) {
