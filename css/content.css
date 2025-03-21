@@ -46,6 +46,11 @@
 
 /* css/content.css */
 #custom-icon {
+    all: unset;
+    width: 24px !important;
+    height: 24px !important;
+    padding: 0px;
+    margin: 0px;
     position: absolute;
     background: aliceblue;
     border: solid 1px #eee;
@@ -59,8 +64,8 @@
 #custom-icon svg {
     margin: 0px;
     padding: 0px;
-    width: 32px !important;
-    height: 32px !important;
+    width: 24px !important;
+    height: 24px !important;
 }
 
 /** 弹出框 **/

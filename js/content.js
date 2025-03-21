@@ -210,3 +210,7 @@ document.addEventListener('mousedown', function (event) {
     if (popup && popup.contains(event.target)) return;
     closeIconAndPopup();
 });
+
+document.addEventListener('keydown', function (event) {
+    closeIconAndPopup();
+});
