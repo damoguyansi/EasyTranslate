@@ -1,0 +1,15 @@
+{
+  "name": "easytranslate",
+  "version": "2.0.0",
+  "description": "现代化浏览器多功能工具箱：划词翻译、输入翻译、密码生成、Base64、JSON 格式化",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "2.0.0",
+    "vite": "^5.4.0"
+  }
+}
