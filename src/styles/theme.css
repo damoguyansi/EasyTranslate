@@ -1,0 +1,182 @@
+/* ===== EasyTranslate 设计系统 · 玻璃拟态 ===== */
+:root {
+  --brand-1: #6366f1;
+  --brand-2: #8b5cf6;
+  --brand-3: #ec4899;
+  --grad-brand: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+
+  --bg-page: radial-gradient(1200px 600px at 0% 0%, #eef2ff 0%, transparent 60%),
+    radial-gradient(1000px 600px at 100% 100%, #fce7f3 0%, transparent 55%), #f8fafc;
+  --glass-bg: rgba(255, 255, 255, 0.62);
+  --glass-strong: rgba(255, 255, 255, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --glass-shadow: 0 12px 40px rgba(79, 70, 229, 0.14);
+
+  --text-1: #1e293b;
+  --text-2: #64748b;
+  --text-3: #94a3b8;
+  --line: rgba(148, 163, 184, 0.28);
+  --field-bg: rgba(255, 255, 255, 0.6);
+
+  --ok: #22c55e;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+  --info: #6366f1;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 18px;
+  --r-xl: 24px;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme='dark'] {
+  --bg-page: radial-gradient(1200px 600px at 0% 0%, #1e1b4b 0%, transparent 60%),
+    radial-gradient(1000px 600px at 100% 100%, #3b0764 0%, transparent 55%), #0f172a;
+  --glass-bg: rgba(30, 41, 59, 0.6);
+  --glass-strong: rgba(30, 41, 59, 0.8);
+  --glass-border: rgba(148, 163, 184, 0.18);
+  --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  --text-1: #e2e8f0;
+  --text-2: #94a3b8;
+  --text-3: #64748b;
+  --line: rgba(148, 163, 184, 0.18);
+  --field-bg: rgba(15, 23, 42, 0.55);
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC',
+    'Microsoft YaHei', sans-serif;
+  color: var(--text-1);
+  background: var(--bg-page);
+  -webkit-font-smoothing: antialiased;
+}
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+/* ===== 按钮 ===== */
+.btn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--field-bg);
+  color: var(--text-1);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 14px;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s var(--ease);
+  white-space: nowrap;
+}
+.btn:hover {
+  transform: translateY(-1px);
+  border-color: var(--brand-1);
+  color: var(--brand-1);
+}
+.btn:active {
+  transform: translateY(0);
+}
+.btn-primary {
+  background: var(--grad-brand);
+  border: none;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35);
+}
+.btn-primary:hover {
+  color: #fff;
+  filter: brightness(1.06);
+  box-shadow: 0 10px 26px rgba(99, 102, 241, 0.45);
+}
+.btn-danger:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.btn.is-done {
+  border-color: var(--ok) !important;
+  color: var(--ok) !important;
+}
+
+/* ===== 表单元素 ===== */
+.field,
+select.field,
+textarea.field,
+input.field {
+  width: 100%;
+  background: var(--field-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  color: var(--text-1);
+  font-size: 14px;
+  padding: 10px 12px;
+  transition: all 0.2s var(--ease);
+  font-family: inherit;
+}
+.field:focus {
+  outline: none;
+  border-color: var(--brand-1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+}
+textarea.field {
+  resize: none;
+  line-height: 1.6;
+}
+.mono {
+  font-family: 'JetBrains Mono', 'SF Mono', Consolas, 'Courier New', monospace;
+}
+
+/* ===== Toast ===== */
+.et-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translate(-50%, 20px);
+  padding: 9px 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(30, 41, 59, 0.92);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.25s var(--ease);
+  z-index: 9999;
+}
+.et-toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.et-toast[data-type='success'] {
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+}
+.et-toast[data-type='error'] {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+}
+
+/* 滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-1);
+}
