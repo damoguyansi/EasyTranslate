@@ -21,3 +21,7 @@ target/
 logs/
 *.DS_Store
 rebel.xml
+
+# Node
+node_modules/
+.vite/
