@@ -1,0 +1,24 @@
+{
+  "name": "easytranslate-macos",
+  "version": "2.0.0",
+  "description": "EasyTranslate macOS 菜单栏工具箱：翻译 · 密码 · Base64 · JSON",
+  "type": "module",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "concurrently \"vite\" \"wait-on tcp:5173 && VITE_DEV_URL=http://localhost:5173 electron .\"",
+    "build": "vite build",
+    "tray": "node resources/make-tray.mjs",
+    "dist": "npm run build && electron-builder --mac --universal",
+    "test": "node --test scripts/test-scaffold.mjs scripts/test-migration.mjs scripts/test-main.mjs scripts/test-preload.mjs scripts/test-popup.mjs scripts/test-json-page.mjs scripts/test-resources.mjs scripts/test-build.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "electron": "^32.3.3",
+    "electron-builder": "^25.1.8",
+    "vite": "^5.4.19",
+    "wait-on": "^8.0.3"
+  },
+  "dependencies": {
+    "electron-store": "^10.0.0"
+  }
+}

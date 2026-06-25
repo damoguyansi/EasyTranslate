@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>截图</title>
+  <link rel="stylesheet" href="./capture.css" />
+</head>
+<body>
+  <canvas id="stage"></canvas>
+
+  <!-- 选区尺寸标签 -->
+  <div id="sizeLabel" class="size-label"></div>
+
+  <!-- 放大镜 -->
+  <div id="loupe" class="loupe">
+    <canvas id="loupeCanvas" width="120" height="120"></canvas>
+    <div id="loupeInfo" class="loupe-info"></div>
+  </div>
+
+  <!-- 工具栏 -->
+  <div id="toolbar" class="toolbar">
+    <button class="tbtn" data-tool="rect"    title="矩形">▭</button>
+    <button class="tbtn" data-tool="ellipse" title="椭圆">◯</button>
+    <button class="tbtn" data-tool="arrow"   title="箭头">↗</button>
+    <button class="tbtn" data-tool="pen"     title="画笔">✎</button>
+    <button class="tbtn" data-tool="mosaic"  title="马赛克">▦</button>
+    <button class="tbtn" data-tool="text"    title="文字">T</button>
+    <span class="tsep"></span>
+    <span id="colors" class="colors"></span>
+    <span id="sizes" class="sizes"></span>
+    <span class="tsep"></span>
+    <button class="tbtn act" data-act="undo"   title="撤销">⟲</button>
+    <button class="tbtn act" data-act="pin"    title="钉在屏幕上">📌</button>
+    <button class="tbtn act" data-act="save"   title="保存">⬇</button>
+    <button class="tbtn act danger" data-act="cancel" title="取消 (Esc)">✕</button>
+    <button class="tbtn act ok" data-act="copy" title="完成并复制 (Enter)">✓</button>
+  </div>
+
+  <!-- 文字输入 -->
+  <textarea id="textInput" class="text-input" spellcheck="false"></textarea>
+
+  <div id="hint" class="hint">点击高亮窗口自动截取 · 拖动自选区域 · Esc 取消</div>
+
+  <script type="module" src="./capture.js"></script>
+</body>
+</html>

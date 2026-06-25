@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>钉图</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
+    #pinImg {
+      width: 100%; height: 100%; display: block; object-fit: fill;
+      border-radius: 4px; box-shadow: 0 4px 18px rgba(0,0,0,.35);
+      -webkit-app-region: drag;            /* 拖动移动钉图窗口 */
+      border: 1px solid rgba(0,0,0,.15);
+    }
+  </style>
+</head>
+<body>
+  <img id="pinImg" alt="" title="双击关闭 · 拖动移动" />
+  <script type="module" src="./pin.js"></script>
+</body>
+</html>
