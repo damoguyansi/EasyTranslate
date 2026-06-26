@@ -99,9 +99,17 @@ async function captureScreenImage(display, sf) {
 function getWindowRects() {
   return new Promise((resolve) => {
     if (process.platform !== 'darwin') return resolve([]);
+    // 用「逐个判断 background only」代替 `whose visible is true and background
+    // only is false` 的批量 whose 子句——AppleScript 的 whose 过滤会强制把所有
+    // 进程（包含上百个系统/Helper 进程）整体转换求值，在进程数多的机器上实测
+    // 耗时 10+ 秒；改成对 every process 逐个 if 判断后只需 3 秒左右。
+    // 这个调用本身仍可能耗时，因此调用方不应阻塞截图覆盖层的展示，应在后台
+    // 异步获取后再补发窗口列表。
     const script = 'tell application "System Events"\n'
       + 'set out to ""\n'
-      + 'repeat with p in (every process whose visible is true and background only is false)\n'
+      + 'repeat with p in (every process)\n'
+      + 'try\n'
+      + 'if (background only of p is false) then\n'
       + 'repeat with w in (every window of p)\n'
       + 'try\n'
       + 'set ps to position of w\n'
@@ -109,11 +117,13 @@ function getWindowRects() {
       + 'set out to out & (item 1 of ps) & "," & (item 2 of ps) & "," & (item 1 of sz) & "," & (item 2 of sz) & linefeed\n'
       + 'end try\n'
       + 'end repeat\n'
+      + 'end if\n'
+      + 'end try\n'
       + 'end repeat\n'
       + 'return out\n'
       + 'end tell';
     import('child_process').then(({ execFile }) => {
-      execFile('osascript', ['-e', script], { timeout: 1500 }, (err, stdout) => {
+      execFile('osascript', ['-e', script], { timeout: 6000 }, (err, stdout) => {
         if (err || !stdout) return resolve([]);
         const rects = stdout.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
           const a = l.split(',').map(n => parseInt(n, 10));
@@ -147,16 +157,10 @@ async function startCapture() {
   const display = screen.getDisplayNearestPoint(point);
   const sf = display.scaleFactor || 1;
 
-  // 截屏 + 枚举窗口（微信式自动选窗）并行
-  const [image, winRects] = await Promise.all([
-    captureScreenImage(display, sf),
-    getWindowRects()
-  ]);
-  const windows = winRects
-    .map(r => ({ x: r.x - display.bounds.x, y: r.y - display.bounds.y, w: r.w, h: r.h }))
-    .filter(r => r.w > 1 && r.h > 1 &&
-      r.x + r.w > 0 && r.y + r.h > 0 &&
-      r.x < display.bounds.width && r.y < display.bounds.height);
+  // 截屏图像直接决定覆盖层何时能展示，必须等；窗口位置枚举（微信式自动选窗）
+  // 通过 AppleScript 实现，在进程数较多的机器上可能要几秒——不能让它卡住截图
+  // 弹出的速度。先只等截屏完成就显示覆盖层，窗口列表异步获取后再补发更新。
+  const image = await captureScreenImage(display, sf);
 
   captureWin = new BrowserWindow({
     x: display.bounds.x, y: display.bounds.y,
@@ -175,12 +179,22 @@ async function startCapture() {
   captureWin.webContents.once('did-finish-load', () => {
     if (!captureWin) return;
     captureWin.webContents.send('et:capture-init', {
-      image, displayBounds: display.bounds, scaleFactor: sf, windows
+      image, displayBounds: display.bounds, scaleFactor: sf, windows: []
     });
     captureWin.show();
     captureWin.focus();
   });
   captureWin.on('closed', () => { captureWin = null; });
+
+  getWindowRects().then((winRects) => {
+    if (!captureWin) return; // 用户已取消/完成截图，丢弃迟到的结果
+    const windows = winRects
+      .map(r => ({ x: r.x - display.bounds.x, y: r.y - display.bounds.y, w: r.w, h: r.h }))
+      .filter(r => r.w > 1 && r.h > 1 &&
+        r.x + r.w > 0 && r.y + r.h > 0 &&
+        r.x < display.bounds.width && r.y < display.bounds.height);
+    if (captureWin) captureWin.webContents.send('et:capture-windows-update', windows);
+  });
 }
 function closeCapture() {
   if (captureWin) { try { captureWin.close(); } catch (e) {} captureWin = null; }

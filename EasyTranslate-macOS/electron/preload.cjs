@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   startCapture:  function() { return ipcRenderer.invoke('et:start-capture'); },
   // 截图覆盖层 API
   onCaptureInit: function(cb) { ipcRenderer.on('et:capture-init', function(_, d) { cb(d); }); },
+  onCaptureWindowsUpdate: function(cb) { ipcRenderer.on('et:capture-windows-update', function(_, d) { cb(d); }); },
   captureCancel: function() { ipcRenderer.send('et:capture-cancel'); },
   captureCopy:   function(dataURL) { ipcRenderer.send('et:capture-copy', dataURL); },
   captureSave:   function(dataURL) { return ipcRenderer.invoke('et:capture-save', dataURL); },

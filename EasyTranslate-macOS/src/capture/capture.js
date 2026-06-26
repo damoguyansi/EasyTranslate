@@ -45,6 +45,13 @@ api.onCaptureInit((d) => {
 
   buildToolbar();
   if (!d.image) { redraw(); return; }
+  // 窗口位置枚举耗时较长，不阻塞截图覆盖层展示；主进程异步算完后补发
+  if (typeof api.onCaptureWindowsUpdate === 'function') {
+    api.onCaptureWindowsUpdate((updatedWins) => {
+      wins = updatedWins || [];
+      if (phase === 'idle' || phase === 'selecting') redraw();
+    });
+  }
   const img = new Image();
   img.onload = () => {
     baseImg = img;
