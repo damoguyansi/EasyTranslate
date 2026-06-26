@@ -1,6 +1,6 @@
 {
   "name": "easytranslate",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "现代化浏览器多功能工具箱：划词翻译、输入翻译、密码生成、Base64、JSON 格式化",
   "type": "module",
   "scripts": {

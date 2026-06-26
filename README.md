@@ -20,14 +20,22 @@
 
 ### 这是什么
 
-EasyTranslate 是一个轻量、美观的多功能工具箱，核心功能是**自动中英互译**，并附带日常开发/办公中常用的小工具：密码生成器、Base64 编解码、JSON 格式化。同一套设计与逻辑代码，分别提供两种使用形态：
+EasyTranslate 是一个免费、轻量、零广告的多功能工具箱：**自动中英互译**是核心，同时把日常高频用到的几个小工具放进同一个界面——密码生成器、Base64 编解码、JSON 格式化/校验。不需要在十个网站之间来回切换，一个入口搞定。
+
+同一套设计与逻辑代码，按使用场景分别提供两种形态：
 
 | 子项目 | 形态 | 适用场景 |
 | --- | --- | --- |
 | [`EasyTranslate-chrome/`](EasyTranslate-chrome) | 浏览器扩展（Chrome / Edge，Manifest V3） | 网页划词翻译、右键菜单翻译 |
-| [`EasyTranslate-macOS/`](EasyTranslate-macOS) | macOS 菜单栏应用（Electron） | 全局快捷键、截图标注、置顶小窗，不依赖浏览器 |
+| [`EasyTranslate-macOS/`](EasyTranslate-macOS) | macOS 菜单栏应用（Electron） | 全局快捷键随时唤出、划词翻译、微信式截图标注、窗口置顶，脱离浏览器独立运行 |
 
-两者的图标、品牌色（紫→粉渐变）、四个工具 Tab（翻译 / 密码 / Base64 / JSON）与交互细节保持一致，详细使用说明见各子项目的 README。
+**亮点**
+- 🌐 输入即译，自动检测中/英文，无需手动选择语言
+- ⌨️ macOS 版支持全局快捷键：`⌘⇧T` 唤出主窗口、`⌘⇧Y` 划词翻译、`⌘⇧Z` 截图标注
+- ✂️ 截图标注自动识别并高亮屏幕上的窗口，单击即选中（微信式体验）
+- 🎨 深色 / 浅色主题、统一品牌视觉，两个版本图标、交互细节完全一致
+
+详细使用说明见各子项目的 README。
 
 ### 快速开始
 
@@ -61,14 +69,22 @@ MIT License，详见 [`EasyTranslate-chrome/LICENSE`](EasyTranslate-chrome/LICEN
 
 ### What is this
 
-EasyTranslate is a lightweight, good-looking utility toolbox built around **automatic Chinese ⇄ English translation**, plus a few tools developers and everyday users reach for often: a password generator, Base64 encode/decode, and a JSON formatter. The same design system and core logic ship in two forms:
+EasyTranslate is a free, lightweight, ad-free utility toolbox. **Automatic Chinese ⇄ English translation** is the core, alongside a handful of tools people reach for constantly: a password generator, Base64 encode/decode, and a JSON formatter/validator — all in one place instead of ten browser tabs.
+
+The same design system and core logic ship in two forms, matched to how you actually work:
 
 | Sub-project | Form factor | Best for |
 | --- | --- | --- |
 | [`EasyTranslate-chrome/`](EasyTranslate-chrome) | Browser extension (Chrome / Edge, Manifest V3) | Selection-translate on web pages, right-click context menu |
-| [`EasyTranslate-macOS/`](EasyTranslate-macOS) | macOS menu-bar app (Electron) | Global keyboard shortcuts, screenshot annotation, always-on-top windows — no browser needed |
+| [`EasyTranslate-macOS/`](EasyTranslate-macOS) | macOS menu-bar app (Electron) | Global shortcuts to summon it instantly, selection-translate, WeChat-style screenshot annotation, always-on-top windows — runs independently of any browser |
 
-Both share the same icon, brand gradient (indigo → violet → pink), the four tool tabs (Translate / Password / Base64 / JSON), and interaction details. See each sub-project's README for full usage instructions.
+**Highlights**
+- 🌐 Type and it translates — language is auto-detected, no manual source/target picking
+- ⌨️ macOS global shortcuts: `⌘⇧T` summon the main window, `⌘⇧Y` selection-translate, `⌘⇧Z` screenshot annotation
+- ✂️ Screenshot tool auto-detects and highlights on-screen windows, click to select (WeChat-style)
+- 🎨 Light/dark theme, one consistent brand identity — icons and interactions match exactly across both versions
+
+See each sub-project's README for full usage instructions.
 
 ### Quick start
 
