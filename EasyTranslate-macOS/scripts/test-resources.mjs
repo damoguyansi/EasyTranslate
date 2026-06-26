@@ -19,6 +19,16 @@ test('entitlements.mac.plist has required keys', () => {
   const plist = readFileSync('resources/entitlements.mac.plist', 'utf8');
   assert.ok(plist.includes('com.apple.security.network.client'));
   assert.ok(plist.includes('com.apple.security.automation.apple-events'));
+  // 没有付费 Developer ID 证书时只能逐项 ad-hoc 自签，必须禁用库验证，
+  // 否则 hardened runtime 会拒绝加载签名身份不同的内嵌 framework/helper，
+  // 表现为启动即崩溃（DYLD Library not loaded / different Team IDs）。
+  assert.ok(plist.includes('com.apple.security.cs.disable-library-validation'));
+});
+
+test('electron-builder.js 配置了 afterSign 重签名钩子', () => {
+  const src = readFileSync('electron-builder.js', 'utf8');
+  assert.ok(src.includes('afterSign'));
+  assert.ok(existsSync('scripts/after-sign.cjs'));
 });
 
 test('electron-builder.js references correct paths', () => {

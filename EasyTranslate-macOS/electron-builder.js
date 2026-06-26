@@ -19,8 +19,10 @@ export default {
     entitlements: 'resources/entitlements.mac.plist',
     entitlementsInherit: 'resources/entitlements.mac.plist',
     hardenedRuntime: true,
-    gatekeeperAssess: false
+    gatekeeperAssess: false,
+    identity: null
   },
+  afterSign: 'scripts/after-sign.cjs',
   dmg: {
     title: 'EasyTranslate ${version}',
     contents: [
