@@ -18,8 +18,8 @@ test('vite.config.js 包含 fileURLToPath 与双入口', () => {
   assert.ok(src.includes('json'));
 });
 
-test('electron-builder.config.js 包含 universal 架构', () => {
-  assert.ok(readFileSync('electron-builder.config.js', 'utf8').includes('universal'));
+test('electron-builder.js 包含 universal 架构', () => {
+  assert.ok(readFileSync('electron-builder.js', 'utf8').includes('universal'));
 });
 
 test('必要目录结构存在', () => {

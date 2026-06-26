@@ -21,8 +21,8 @@ test('entitlements.mac.plist has required keys', () => {
   assert.ok(plist.includes('com.apple.security.automation.apple-events'));
 });
 
-test('electron-builder.config.js references correct paths', () => {
-  const src = readFileSync('electron-builder.config.js', 'utf8');
+test('electron-builder.js references correct paths', () => {
+  const src = readFileSync('electron-builder.js', 'utf8');
   assert.ok(src.includes('resources/icon.icns'));
   assert.ok(src.includes('resources/entitlements.mac.plist'));
   assert.ok(src.includes('universal'));

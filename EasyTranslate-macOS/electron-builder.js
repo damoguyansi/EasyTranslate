@@ -1,4 +1,4 @@
-// electron-builder.config.js
+// electron-builder.js
 export default {
   appId: 'com.damoguyansi.easytranslate',
   productName: 'EasyTranslate',
