@@ -31,6 +31,22 @@ test('electron-builder.js 配置了 afterSign 重签名钩子', () => {
   assert.ok(existsSync('scripts/after-sign.cjs'));
 });
 
+test('after-sign keeps helper bundle identifiers stable', () => {
+  const src = readFileSync('scripts/after-sign.cjs', 'utf8');
+  assert.ok(src.includes('CFBundleIdentifier'));
+  assert.ok(src.includes('bundleIdentifier(target, fallbackId)'));
+  assert.ok(src.includes("target.endsWith('.app') ? bundleIdentifier(target, fallbackId) : fallbackId"));
+});
+
+test('after-sign prefers a stable codesign identity for TCC permissions', () => {
+  const src = readFileSync('scripts/after-sign.cjs', 'utf8');
+  assert.ok(src.includes('resolveSigningIdentity'));
+  assert.ok(src.includes('security'));
+  assert.ok(src.includes('find-identity'));
+  assert.ok(src.includes('EASYTRANSLATE_CODESIGN_IDENTITY'));
+  assert.ok(src.includes('TCC 权限可能随每次打包失效'));
+});
+
 test('electron-builder.js references correct paths', () => {
   const src = readFileSync('electron-builder.js', 'utf8');
   assert.ok(src.includes('resources/icon.icns'));

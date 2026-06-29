@@ -6,7 +6,8 @@ import {
 } from 'electron';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { writeFileSync } from 'fs';
+import { appendFileSync, writeFileSync } from 'fs';
+import { execFile } from 'child_process';
 import {
   getValue, setValue, deleteValue,
   getHistory, addHistory, clearHistory,
@@ -22,6 +23,23 @@ app.setName('EasyTranslate');
 
 let mainWin = null, jsonWin = null, tray = null, captureWin = null;
 let pinWins = [];
+
+function captureDebugEnabled() {
+  return process.env.ET_CAPTURE_DEBUG === '1';
+}
+function captureLogPath() {
+  return join(app.getPath('userData'), 'capture-debug.log');
+}
+function captureLog(event, data = {}) {
+  if (!captureDebugEnabled()) return;
+  try {
+    appendFileSync(captureLogPath(), JSON.stringify({
+      time: new Date().toISOString(),
+      event,
+      ...data
+    }) + '\n');
+  } catch (e) {}
+}
 
 function devBase() {
   return process.env.VITE_DEV_URL || 'http://localhost:5173';
@@ -90,77 +108,159 @@ async function captureScreenImage(display, sf) {
         height: Math.round(display.size.height * sf)
       }
     });
+    captureLog('capture-sources', {
+      count: sources.length,
+      displayId: display.id,
+      sources: sources.map(s => ({
+        id: s.id,
+        name: s.name,
+        display_id: s.display_id,
+        thumbnailEmpty: s.thumbnail.isEmpty(),
+        thumbnailSize: s.thumbnail.getSize()
+      }))
+    });
     const src = sources.find(s => String(s.display_id) === String(display.id)) || sources[0];
-    return src ? src.thumbnail.toDataURL() : '';
-  } catch (e) { return ''; }
+    const image = src && !src.thumbnail.isEmpty() ? src.thumbnail.toDataURL() : '';
+    captureLog('capture-source-selected', {
+      selected: src ? { id: src.id, name: src.name, display_id: src.display_id, size: src.thumbnail.getSize() } : null,
+      hasImage: !!image
+    });
+    return image;
+  } catch (e) {
+    captureLog('capture-sources-error', { error: String(e && (e.stack || e.message) || e) });
+    return '';
+  }
 }
 
-// 通过 System Events 枚举可见窗口的位置/尺寸（需辅助功能权限；无权限则返回 []）
+function canDetectWindowRects() {
+  return process.platform === 'darwin';
+}
+
+// 通过 WindowServer 枚举可见窗口的位置/尺寸。相比 System Events，这条路径不需要
+// 辅助功能权限，且 CGWindowList 返回顺序接近前台到后台，更适合悬停选窗。
 function getWindowRects() {
   return new Promise((resolve) => {
     if (process.platform !== 'darwin') return resolve([]);
-    // 用「逐个判断 background only」代替 `whose visible is true and background
-    // only is false` 的批量 whose 子句——AppleScript 的 whose 过滤会强制把所有
-    // 进程（包含上百个系统/Helper 进程）整体转换求值，在进程数多的机器上实测
-    // 耗时 10+ 秒；改成对 every process 逐个 if 判断后只需 3 秒左右。
-    // 这个调用本身仍可能耗时，因此调用方不应阻塞截图覆盖层的展示，应在后台
-    // 异步获取后再补发窗口列表。
-    const script = 'tell application "System Events"\n'
-      + 'set out to ""\n'
-      + 'repeat with p in (every process)\n'
-      + 'try\n'
-      + 'if (background only of p is false) then\n'
-      + 'repeat with w in (every window of p)\n'
-      + 'try\n'
-      + 'set ps to position of w\n'
-      + 'set sz to size of w\n'
-      + 'set out to out & (item 1 of ps) & "," & (item 2 of ps) & "," & (item 1 of sz) & "," & (item 2 of sz) & linefeed\n'
-      + 'end try\n'
-      + 'end repeat\n'
-      + 'end if\n'
-      + 'end try\n'
-      + 'end repeat\n'
-      + 'return out\n'
-      + 'end tell';
-    import('child_process').then(({ execFile }) => {
-      execFile('osascript', ['-e', script], { timeout: 6000 }, (err, stdout) => {
-        if (err || !stdout) return resolve([]);
-        const rects = stdout.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
-          const a = l.split(',').map(n => parseInt(n, 10));
-          return { x: a[0], y: a[1], w: a[2], h: a[3] };
-        }).filter(r => Number.isFinite(r.x) && r.w > 1 && r.h > 1);
-        resolve(rects);
+    const script = `
+ObjC.import('CoreGraphics');
+ObjC.import('Foundation');
+
+const options = $.kCGWindowListOptionOnScreenOnly | $.kCGWindowListExcludeDesktopElements;
+const ref = $.CGWindowListCopyWindowInfo(options, $.kCGNullWindowID);
+const windows = ObjC.deepUnwrap(ObjC.castRefToObject(ref));
+
+for (const win of windows) {
+  const layer = Number(win.kCGWindowLayer || 0);
+  const alpha = Number(win.kCGWindowAlpha == null ? 1 : win.kCGWindowAlpha);
+  const bounds = win.kCGWindowBounds || {};
+  const x = Math.round(Number(bounds.X || 0));
+  const y = Math.round(Number(bounds.Y || 0));
+  const w = Math.round(Number(bounds.Width || 0));
+  const h = Math.round(Number(bounds.Height || 0));
+  const owner = String(win.kCGWindowOwnerName || '');
+  if (layer !== 0 || alpha <= 0.01 || w < 8 || h < 8) continue;
+  console.log(owner + '\\t' + x + ',' + y + ',' + w + ',' + h);
+}
+`;
+    execFile('osascript', ['-l', 'JavaScript', '-e', script], { timeout: 1500 }, (err, stdout, stderr) => {
+      // JXA's console.log can be delivered on stderr even when the script succeeds.
+      const output = stdout || stderr || '';
+      if (err || !output) {
+        captureLog('window-rects-empty', {
+          error: err ? String(err.message || err) : '',
+          stderr: stderr || '',
+          stdoutLength: stdout ? stdout.length : 0
+        });
+        return resolve([]);
+      }
+      const rects = output.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
+        const [owner, rawRect] = l.split('\t');
+        if (!rawRect) return null;
+        const a = rawRect.split(',').map(n => parseInt(n, 10));
+        return { owner: owner || '', x: a[0], y: a[1], w: a[2], h: a[3] };
+      }).filter(r => r && Number.isFinite(r.x) && r.w > 1 && r.h > 1);
+      captureLog('window-rects', {
+        count: rects.length,
+        sample: rects.slice(0, 8)
       });
-    }).catch(() => resolve([]));
+      resolve(rects);
+    });
   });
+}
+
+function toDisplayWindows(winRects, display) {
+  return winRects
+    .map(r => ({ x: r.x - display.bounds.x, y: r.y - display.bounds.y, w: r.w, h: r.h }))
+    .filter((r, i) => !/^EasyTranslate( Helper.*)?$/.test(winRects[i].owner || ''))
+    .filter(r => r.w > 1 && r.h > 1 &&
+      r.x + r.w > 0 && r.y + r.h > 0 &&
+      r.x < display.bounds.width && r.y < display.bounds.height);
 }
 
 async function startCapture() {
   if (captureWin) return;
-  // 录屏权限检查：未授权时直接打开设置面板并提示，避免出现黑屏覆盖层
-  if (process.platform === 'darwin') {
-    const status = systemPreferences.getMediaAccessStatus('screen');
-    if (status !== 'granted') {
-      shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture');
-      dialog.showMessageBox({
-        type: 'info',
-        title: '需要屏幕录制权限',
-        message: '请在「系统设置 › 隐私与安全性 › 录屏与系统录音」中勾选 EasyTranslate，然后重启本应用再截图。',
-        detail: '开发模式下若由其它程序启动，会归属到父进程；授权后必须重启进程权限才生效。',
-        buttons: ['好的']
-      });
-      return;
-    }
-  }
+  captureLog('start-capture');
   if (mainWin) mainWin.hide();
   const point = screen.getCursorScreenPoint();
   const display = screen.getDisplayNearestPoint(point);
   const sf = display.scaleFactor || 1;
+  const canDetectWindows = canDetectWindowRects();
+  let initialWindows = [];
+  let captureLoaded = false;
+  const windowRectsPromise = (canDetectWindows ? getWindowRects() : Promise.resolve([]))
+    .then((winRects) => {
+      const windows = toDisplayWindows(winRects, display);
+      initialWindows = windows;
+      captureLog('window-rects-ready', {
+        count: windows.length,
+        sample: windows.slice(0, 8),
+        captureLoaded
+      });
+      if (captureLoaded && captureWin) {
+        captureLog('window-rects-send', {
+          count: windows.length,
+          sample: windows.slice(0, 8)
+        });
+        captureWin.webContents.send('et:capture-windows-update', windows);
+      }
+      return windows;
+    });
+  captureLog('capture-display', {
+    point,
+    displayId: display.id,
+    bounds: display.bounds,
+    size: display.size,
+    scaleFactor: sf,
+    canDetectWindows
+  });
+
+  // mainWin.hide() 只是发出隐藏指令，系统合成器把它真正从屏幕上抹掉还需要
+  // 一两帧时间；如果立刻截屏，会把弹窗自己的残影也拍进截图里。等一帧再截。
+  await new Promise(r => setTimeout(r, 120));
 
   // 截屏图像直接决定覆盖层何时能展示，必须等；窗口位置枚举（微信式自动选窗）
   // 通过 AppleScript 实现，在进程数较多的机器上可能要几秒——不能让它卡住截图
   // 弹出的速度。先只等截屏完成就显示覆盖层，窗口列表异步获取后再补发更新。
   const image = await captureScreenImage(display, sf);
+  if (!image) {
+    captureLog('capture-image-empty');
+    if (mainWin) mainWin.show();
+    if (process.platform === 'darwin') {
+      const ret = await dialog.showMessageBox(mainWin || undefined, {
+        type: 'info',
+        title: '需要屏幕录制权限',
+        message: '请在「系统设置 › 隐私与安全性 › 录屏与系统录音」中勾选 EasyTranslate，然后完全退出并重新打开本应用。',
+        detail: '如果已经勾选仍看到此提示，请先关闭 EasyTranslate，再把系统设置里的 EasyTranslate 开关关闭后重新打开一次。',
+        buttons: ['打开系统设置', '稍后'],
+        defaultId: 0,
+        cancelId: 1
+      });
+      if (ret.response === 0) {
+        shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture');
+      }
+    }
+    return;
+  }
 
   captureWin = new BrowserWindow({
     x: display.bounds.x, y: display.bounds.y,
@@ -178,23 +278,19 @@ async function startCapture() {
   captureWin.loadURL(captureURL());
   captureWin.webContents.once('did-finish-load', () => {
     if (!captureWin) return;
+    captureLoaded = true;
     captureWin.webContents.send('et:capture-init', {
-      image, displayBounds: display.bounds, scaleFactor: sf, windows: []
+      image, displayBounds: display.bounds, scaleFactor: sf,
+      windows: initialWindows, canDetectWindows
+    });
+    captureLog('capture-init-sent', {
+      initialWindows: initialWindows.length
     });
     captureWin.show();
     captureWin.focus();
   });
   captureWin.on('closed', () => { captureWin = null; });
-
-  getWindowRects().then((winRects) => {
-    if (!captureWin) return; // 用户已取消/完成截图，丢弃迟到的结果
-    const windows = winRects
-      .map(r => ({ x: r.x - display.bounds.x, y: r.y - display.bounds.y, w: r.w, h: r.h }))
-      .filter(r => r.w > 1 && r.h > 1 &&
-        r.x + r.w > 0 && r.y + r.h > 0 &&
-        r.x < display.bounds.width && r.y < display.bounds.height);
-    if (captureWin) captureWin.webContents.send('et:capture-windows-update', windows);
-  });
+  windowRectsPromise.catch(() => {});
 }
 function closeCapture() {
   if (captureWin) { try { captureWin.close(); } catch (e) {} captureWin = null; }

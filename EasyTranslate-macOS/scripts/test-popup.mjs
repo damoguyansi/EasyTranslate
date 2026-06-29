@@ -36,3 +36,23 @@ test('popup.css is flat, compact, non-draggable and never scrolls horizontally',
   assert.ok(!/-webkit-app-region:\s*drag/.test(src), '不应存在可拖拽区域');
   assert.ok(src.includes('box-shadow: none'), '扁平设计应去除卡片阴影');
 });
+
+test('capture overlay recalculates hovered window after async window update', () => {
+  const src = readFileSync('src/capture/capture.js', 'utf8');
+  assert.ok(src.includes('let lastPointer = null'));
+  assert.ok(src.includes('wins = normalizeWindows(updatedWins || [])'));
+  assert.ok(src.includes('hoverWin = pickWin(lastPointer)'));
+  assert.ok(src.includes('canDetectWindows'));
+  assert.ok(!src.includes('开启辅助功能权限后可悬停高亮窗口'));
+});
+
+test('capture overlay does not expose debug diagnostics in production UI', () => {
+  const js = readFileSync('src/capture/capture.js', 'utf8');
+  const html = readFileSync('src/capture/capture.html', 'utf8');
+  const css = readFileSync('src/capture/capture.css', 'utf8');
+  assert.ok(!html.includes('debugPanel'));
+  assert.ok(!css.includes('.debug-panel'));
+  assert.ok(!js.includes('debugLog'));
+  assert.ok(!js.includes('renderer-windows-update'));
+  assert.ok(!js.includes('renderer-move'));
+});

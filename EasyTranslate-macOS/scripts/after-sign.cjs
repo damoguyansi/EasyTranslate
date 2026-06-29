@@ -1,13 +1,32 @@
 // 打包后重新签名：electron-builder 在找不到付费 Developer ID 证书时会
 // 直接跳过签名，导致 App 内部保留 Electron 原始的占位签名（Identifier=Electron）。
-// macOS 的隐私权限（TCC，包括录屏/辅助功能）按"代码签名身份"记录授权，
-// 不是按 Info.plist 的 CFBundleIdentifier。身份是通用的 "Electron" 会导致
-// 多个未签名 Electron App 互相冲突、授权后依然反复提示。
-// 这里用本机自签（ad-hoc）证书，把签名身份强制改成我们自己的 appId，
-// 这样无论安装到哪台电脑，TCC 权限都能正确、稳定地与本应用绑定。
+// macOS 的隐私权限（TCC，包括录屏/辅助功能）依赖代码签名身份；如果主程序
+// 或 Helper 仍是 Electron 身份，授权会归属混乱。这里使用 ad-hoc 签名，
+// 并让每个 bundle 的签名 identifier 与它自己的 CFBundleIdentifier 保持一致。
 const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
+
+function resolveSigningIdentity() {
+  if (process.env.EASYTRANSLATE_CODESIGN_IDENTITY) {
+    return process.env.EASYTRANSLATE_CODESIGN_IDENTITY;
+  }
+  try {
+    const out = execFileSync('security', ['find-identity', '-v', '-p', 'codesigning'], {
+      encoding: 'utf8'
+    });
+    const names = out.split('\n').map(line => {
+      const match = line.match(/"([^"]+)"/);
+      return match ? match[1] : '';
+    }).filter(Boolean);
+    return names.find(name => /Developer ID Application/.test(name))
+      || names.find(name => /Apple Development|Mac Developer/.test(name))
+      || names[0]
+      || '-';
+  } catch (e) {
+    return '-';
+  }
+}
 
 // 递归收集需要单独签名的嵌套代码（Frameworks / Helper.app），
 // 必须按"从内到外、从深到浅"的顺序逐个签名——不能直接对外层 .app 用
@@ -45,11 +64,24 @@ function collectNestedTargets(dir, acc = [], isBundleRoot = false) {
   return acc;
 }
 
-function sign(target, appId, entitlements) {
+function bundleIdentifier(target, fallback) {
+  const plist = path.join(target, 'Contents', 'Info.plist');
+  if (!fs.existsSync(plist)) return fallback;
+  try {
+    return execFileSync('plutil', ['-extract', 'CFBundleIdentifier', 'raw', plist], {
+      encoding: 'utf8'
+    }).trim() || fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+function sign(target, fallbackId, entitlements, identity) {
+  const identifier = target.endsWith('.app') ? bundleIdentifier(target, fallbackId) : fallbackId;
   execFileSync('codesign', [
     '--force',
-    '--sign', '-',
-    '--identifier', appId,
+    '--sign', identity,
+    '--identifier', identifier,
     '--entitlements', entitlements,
     '--options', 'runtime',
     '--timestamp=none',
@@ -64,16 +96,20 @@ exports.default = async function afterSign(context) {
   const appName = context.packager.appInfo.productFilename;
   const appPath = path.join(context.appOutDir, `${appName}.app`);
   const entitlements = path.join(context.packager.projectDir, 'resources', 'entitlements.mac.plist');
+  const identity = resolveSigningIdentity();
 
-  console.log(`[after-sign] 重新签名 ${appPath}，身份 = ${appId}（自内向外逐项签名）`);
+  console.log(`[after-sign] 重新签名 ${appPath}，主身份 = ${appId}，签名证书 = ${identity}`);
+  if (identity === '-') {
+    console.warn('[after-sign] 未找到稳定 codesign 证书，退回 ad-hoc；TCC 权限可能随每次打包失效。');
+  }
 
   const frameworksDir = path.join(appPath, 'Contents', 'Frameworks');
   if (fs.existsSync(frameworksDir)) {
     for (const nested of collectNestedTargets(frameworksDir)) {
-      sign(nested, appId, entitlements);
+      sign(nested, appId, entitlements, identity);
     }
   }
-  sign(appPath, appId, entitlements);
+  sign(appPath, appId, entitlements, identity);
 
   execFileSync('codesign', ['--verify', '--deep', '--strict', appPath], { stdio: 'inherit' });
   execFileSync('codesign', ['-dv', appPath], { stdio: 'inherit' });

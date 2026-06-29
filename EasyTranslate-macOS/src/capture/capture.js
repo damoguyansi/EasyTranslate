@@ -29,6 +29,8 @@ let cur = null;              // 正在绘制的 shape
 let drag = null;             // 选区拖动/缩放/移动状态
 let wins = [];               // 屏幕上各窗口矩形（DIP，显示器本地坐标）
 let hoverWin = null;         // 当前悬停命中的窗口（微信式自动选窗）
+let lastPointer = null;
+let canDetectWindows = false;
 
 const COLORS = ['#ff3b30', '#ff9500', '#ffcc00', '#34c759', '#0a84ff', '#ffffff', '#000000'];
 const SIZES = [2, 4, 6];
@@ -37,7 +39,11 @@ const SIZES = [2, 4, 6];
 api.onCaptureInit((d) => {
   cssW = d.displayBounds.width; cssH = d.displayBounds.height;
   dispBounds = d.displayBounds;
-  wins = d.windows || [];
+  canDetectWindows = !!d.canDetectWindows;
+  wins = normalizeWindows(d.windows || []);
+  if (!canDetectWindows && hint) {
+    hint.textContent = '拖动自选区域 · Esc 取消';
+  }
   const dpr = window.devicePixelRatio || d.scaleFactor || 1;
   stage.width = Math.round(cssW * dpr); stage.height = Math.round(cssH * dpr);
   stage.style.width = cssW + 'px'; stage.style.height = cssH + 'px';
@@ -48,8 +54,11 @@ api.onCaptureInit((d) => {
   // 窗口位置枚举耗时较长，不阻塞截图覆盖层展示；主进程异步算完后补发
   if (typeof api.onCaptureWindowsUpdate === 'function') {
     api.onCaptureWindowsUpdate((updatedWins) => {
-      wins = updatedWins || [];
-      if (phase === 'idle' || phase === 'selecting') redraw();
+      wins = normalizeWindows(updatedWins || []);
+      if ((phase === 'idle' || phase === 'selecting') && lastPointer) {
+        hoverWin = pickWin(lastPointer);
+        redraw();
+      }
     });
   }
   const img = new Image();
@@ -73,6 +82,18 @@ function buildMosaic() {
   tmp.getContext('2d').drawImage(baseImg, 0, 0, tw, th);
   mctx.imageSmoothingEnabled = false;
   mctx.drawImage(tmp, 0, 0, tw, th, 0, 0, baseImg.width, baseImg.height);
+}
+
+function normalizeWindows(items) {
+  return items
+    .map(w => ({
+      x: clamp(Math.round(w.x), 0, cssW),
+      y: clamp(Math.round(w.y), 0, cssH),
+      w: Math.round(w.w),
+      h: Math.round(w.h)
+    }))
+    .map(w => ({ ...w, w: Math.min(w.w, cssW - w.x), h: Math.min(w.h, cssH - w.y) }))
+    .filter(w => w.w >= 24 && w.h >= 24 && w.w <= cssW && w.h <= cssH);
 }
 
 /* ---------- 工具栏构建 ---------- */
@@ -150,15 +171,13 @@ function redraw() {
 }
 
 function pickWin(p) {
-  let best = null;
   for (const w of wins) {
     if (p.x >= w.x && p.x <= w.x + w.w && p.y >= w.y && p.y <= w.y + w.h) {
-      if (!best || w.w * w.h < best.w * best.h) best = w;   // 取面积最小者≈最上层
+      const x = Math.max(0, w.x), y = Math.max(0, w.y);
+      return { x, y, w: Math.min(cssW, w.x + w.w) - x, h: Math.min(cssH, w.y + w.h) - y };
     }
   }
-  if (!best) return null;
-  const x = Math.max(0, best.x), y = Math.max(0, best.y);
-  return { x, y, w: Math.min(cssW, best.x + best.w) - x, h: Math.min(cssH, best.y + best.h) - y };
+  return null;
 }
 
 function drawHandles() {
@@ -230,6 +249,7 @@ function hitHandle(p) {
 window.addEventListener('mousedown', (e) => {
   if (e.button !== 0 || inToolbar(e)) return;
   const p = pos(e);
+  lastPointer = p;
 
   if (phase === 'idle') { phase = 'selecting'; sel = null; drag = { sx: p.x, sy: p.y, started: false }; hideHint(); return; }
 
@@ -252,7 +272,11 @@ window.addEventListener('mousedown', (e) => {
 
 window.addEventListener('mousemove', (e) => {
   const p = pos(e);
-  if (phase === 'idle') { hoverWin = pickWin(p); updateLoupe(p); redraw(); return; }
+  lastPointer = p;
+  if (phase === 'idle') {
+    hoverWin = pickWin(p);
+    updateLoupe(p); redraw(); return;
+  }
 
   if (phase === 'selecting') {
     if (!drag.started && Math.hypot(p.x - drag.sx, p.y - drag.sy) > 4) drag.started = true;

@@ -21,6 +21,8 @@ test('preload.cjs exposes all APIs', () => {
     'platform'
   ];
   for (const a of apis) assert.ok(src.includes(a), 'missing API: ' + a);
+  assert.ok(!src.includes('captureDebugInfo'));
+  assert.ok(!src.includes('captureDebugLog'));
 });
 
 test('preload.cjs uses contextBridge.exposeInMainWorld', () => {
