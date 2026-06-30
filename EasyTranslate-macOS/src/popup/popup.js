@@ -1,9 +1,10 @@
 import { translateText } from '../lib/translate.js';
 import { detectLanguage, defaultTarget, LANGUAGES } from '../lib/language.js';
 import { generatePassword, calculatePasswordStrength } from '../lib/password.js';
-import { encodeBase64, decodeBase64, isValidBase64 } from '../lib/base64.js';
 import { formatJSON, compressJSON, validateJSON, getJSONStats, formatFileSize } from '../lib/json.js';
+import { parseOtpAuthUri, generateTotp, getTotpRemaining } from '../authenticator/authenticator.js';
 import { copyToClipboard, toast, flashButton } from '../lib/ui.js';
+import jsQR from 'jsqr';
 import {
   getHistory,
   addHistory,
@@ -26,7 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initTabs();
   initTranslate();
   initPassword();
-  initBase64();
+  initAuth();
   initJSON();
   initMacOS();
   setTimeout(() => $('inputText')?.focus(), 100);
@@ -240,37 +241,171 @@ function initPassword() {
   gen();
 }
 
-/* ===== Base64 ===== */
-function initBase64() {
-  const input = $('base64Input');
-  const output = $('base64Output');
-  $('encodeBtn').addEventListener('click', () => {
-    if (!input.value) return toast('请输入文本', 'error');
+/* ===== Authenticator ===== */
+function initAuth() {
+  const listEl = $('authList');
+  const errBox = $('authError');
+  let accounts = [];
+  let timer = null;
+
+  const showErr = (msg) => {
+    errBox.textContent = msg;
+    errBox.classList.add('show');
+  };
+  const hideErr = () => errBox.classList.remove('show');
+  const save = () => window.electronAPI.setAuthAccounts(accounts);
+  const load = async () => {
+    accounts = await window.electronAPI.getAuthAccounts();
+    if (!Array.isArray(accounts)) accounts = [];
+    await render();
+  };
+  const activeAuthPanel = () => document.getElementById('panel-auth')?.classList.contains('active');
+
+  async function render() {
+    if (!accounts.length) {
+      listEl.innerHTML = '<div class="auth-empty">暂无账号，复制二维码图片后按 Ctrl+V 添加</div>';
+      return;
+    }
+    const now = Date.now();
+    const rows = await Promise.all(accounts.map(async (account) => {
+      let code = '------';
+      try {
+        code = await generateTotp(account, now);
+      } catch {
+        code = '错误';
+      }
+      return `<div class="auth-item" data-id="${attr(account.id)}">
+        <div class="auth-meta">
+          <strong>${esc(account.issuer || 'Authenticator')}</strong>
+          <span>${esc(account.account || '')}</span>
+        </div>
+        <button class="auth-code mono" data-act="copy" data-code="${attr(code)}">${esc(code)}</button>
+        <span class="auth-left">${getTotpRemaining(account, now)}s</span>
+        <button class="link-btn auth-delete" data-act="delete">删除</button>
+      </div>`;
+    }));
+    listEl.innerHTML = rows.join('');
+  }
+
+  async function addFromText(text) {
+    hideErr();
     try {
-      output.value = encodeBase64(input.value);
+      const account = parseOtpAuthUri(text);
+      accounts = [account].concat(accounts.filter((item) => item.id !== account.id));
+      await save();
+      await render();
+      toast('已添加 Auth 账号', 'success');
     } catch (e) {
-      toast(e.message, 'error');
+      showErr(e.message || '添加失败');
+    }
+  }
+
+  async function addFromClipboardEvent(event) {
+    const items = Array.from(event.clipboardData?.items || []);
+    const imageItem = items.find((item) => item.kind === 'file' && item.type.startsWith('image/'));
+    if (imageItem) {
+      const file = imageItem.getAsFile();
+      try {
+        const text = await decodeQrFile(file);
+        await addFromText(text);
+        return true;
+      } catch (e) {
+        showErr(e.message || '未识别到二维码');
+        return true;
+      }
+    }
+    const textItem = items.find((item) => item.kind === 'string' && item.type === 'text/plain');
+    if (textItem) {
+      textItem.getAsString(addFromText);
+      return true;
+    }
+    return false;
+  }
+
+  $('authPasteBtn').addEventListener('click', async () => {
+    hideErr();
+    try {
+      const text = await readClipboardAuthText();
+      await addFromText(text);
+    } catch (e) {
+      showErr(e.message || '请在 Auth 页按 Ctrl+V 粘贴二维码图片');
     }
   });
-  $('decodeBtn').addEventListener('click', () => {
-    if (!input.value) return toast('请输入 Base64 字符串', 'error');
-    if (!isValidBase64(input.value.trim())) return toast('不是有效的 Base64 字符串', 'error');
-    try {
-      output.value = decodeBase64(input.value.trim());
-    } catch (e) {
-      toast(e.message, 'error');
+
+  async function readClipboardAuthText() {
+    if (navigator.clipboard?.read) {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const imageType = item.types.find((type) => type.startsWith('image/'));
+        if (!imageType) continue;
+        return decodeQrFile(await item.getType(imageType));
+      }
+    }
+    if (navigator.clipboard?.readText) {
+      const text = await navigator.clipboard.readText();
+      if (text) return text;
+    }
+    throw new Error('请复制 Authenticator 二维码图片后按 Ctrl+V');
+  }
+  $('authRefreshBtn').addEventListener('click', render);
+  listEl.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-act]');
+    const item = e.target.closest('.auth-item');
+    if (!btn || !item) return;
+    if (btn.dataset.act === 'copy') {
+      (await copyToClipboard(btn.dataset.code))
+        ? (flashButton(btn, '已复制'), toast('已复制验证码', 'success'))
+        : toast('复制失败', 'error');
+    }
+    if (btn.dataset.act === 'delete') {
+      accounts = accounts.filter((account) => account.id !== item.dataset.id);
+      await save();
+      await render();
+      toast('已删除', 'success');
     }
   });
-  $('b64ClearBtn').addEventListener('click', () => {
-    input.value = '';
-    output.value = '';
+  document.addEventListener('paste', async (e) => {
+    if (!activeAuthPanel()) return;
+    const handled = await addFromClipboardEvent(e);
+    if (handled) e.preventDefault();
   });
-  $('b64CopyBtn').addEventListener('click', async (e) => {
-    if (!output.value) return toast('没有可复制的结果', 'error');
-    (await copyToClipboard(output.value))
-      ? (flashButton(e.target, '✓ 已复制'), toast('已复制', 'success'))
-      : toast('复制失败', 'error');
-  });
+  window.addEventListener('focus', render);
+  timer = setInterval(render, 1000);
+  window.addEventListener('beforeunload', () => clearInterval(timer));
+  load();
+}
+
+async function decodeQrFile(file) {
+  if (!file) throw new Error('剪贴板里没有图片');
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(bitmap, 0, 0);
+  const qr = scanQrCanvas(ctx, canvas.width, canvas.height);
+  if (!qr?.data) throw new Error('未识别到 Authenticator 二维码');
+  return qr.data;
+}
+
+function scanQrCanvas(ctx, width, height) {
+  const candidates = [
+    [0, 0, width, height],
+    [Math.round(width * 0.15), Math.round(height * 0.12), Math.round(width * 0.7), Math.round(height * 0.62)],
+    [Math.round(width * 0.2), Math.round(height * 0.15), Math.round(width * 0.5), Math.round(height * 0.55)]
+  ];
+  for (const rect of candidates) {
+    const qr = scanQrRect(ctx, rect);
+    if (qr) return qr;
+  }
+  return null;
+}
+
+function scanQrRect(ctx, rect) {
+  const [x, y, w, h] = rect;
+  if (w < 32 || h < 32) return null;
+  const imageData = ctx.getImageData(x, y, w, h);
+  return jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
 }
 
 /* ===== JSON ===== */
@@ -320,9 +455,12 @@ function initJSON() {
   });
   const openFullPage = async () => {
     // 大文本通过 storage 传递，避免 URL 长度限制
-    window.electronAPI && window.electronAPI.openJsonWindow(document.getElementById('jsonEditor')&&document.getElementById('jsonEditor').value||undefined);
+    window.electronAPI && window.electronAPI.openToolsWindow('json', document.getElementById('jsonEditor')&&document.getElementById('jsonEditor').value||undefined);
   };
   $('jsonOpenBtn').addEventListener('click', openFullPage);
+  $('base64OpenBtn').addEventListener('click', () => {
+    window.electronAPI && window.electronAPI.openToolsWindow('base64');
+  });
 
   const LARGE = 5000;
   editor.addEventListener('input', () => {
@@ -351,7 +489,7 @@ function initMacOS() {
       el.parentNode.replaceChild(fresh, el);
       fresh.addEventListener('click', async function() {
         var draft = document.getElementById('jsonEditor') && document.getElementById('jsonEditor').value;
-        await api.openJsonWindow(draft || undefined);
+        await api.openToolsWindow('json', draft || undefined);
       });
     }
   });

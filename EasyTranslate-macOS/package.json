@@ -9,7 +9,7 @@
     "build": "vite build",
     "tray": "node resources/make-tray.mjs",
     "dist": "npm run build && electron-builder --mac --universal",
-    "test": "node --test scripts/test-scaffold.mjs scripts/test-migration.mjs scripts/test-main.mjs scripts/test-preload.mjs scripts/test-popup.mjs scripts/test-json-page.mjs scripts/test-resources.mjs scripts/test-build.mjs"
+    "test": "node --test scripts/test-scaffold.mjs scripts/test-migration.mjs scripts/test-main.mjs scripts/test-preload.mjs scripts/test-popup.mjs scripts/test-json-page.mjs scripts/test-authenticator.mjs scripts/test-resources.mjs scripts/test-build.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
@@ -19,6 +19,7 @@
     "wait-on": "^8.0.3"
   },
   "dependencies": {
-    "electron-store": "^10.0.0"
+    "electron-store": "^10.0.0",
+    "jsqr": "^1.4.0"
   }
 }

@@ -208,6 +208,46 @@ body {
 .exclude-row { display: flex; flex-direction: column; gap: 6px; }
 .exclude-row .field { font-size: 12px; padding: 7px 9px; }
 
+/* ===== Authenticator ===== */
+.auth-actions { display: flex; gap: 7px; }
+.auth-actions .btn { flex: 1; }
+.auth-list { display: flex; flex-direction: column; gap: 7px; max-height: 360px; overflow-y: auto; }
+.auth-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 38px auto;
+  align-items: center;
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--card-bg, #fff);
+}
+[data-theme='dark'] .auth-item { background: #1e222a; }
+.auth-meta { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.auth-meta strong { font-size: 12px; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.auth-meta span { font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.auth-code {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--brand-1);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+.auth-code.is-done { font-size: 12px; letter-spacing: 0; }
+.auth-left { color: var(--text-3); font-size: 11px; text-align: right; }
+.auth-delete { color: var(--danger); }
+.auth-empty {
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  padding: 28px 12px;
+  text-align: center;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
 /* ===== 通用 ===== */
 .btn-row { display: flex; gap: 7px; }
 .btn-row.wrap { flex-wrap: wrap; }

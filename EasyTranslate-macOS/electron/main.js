@@ -2,7 +2,7 @@
 import {
   app, BrowserWindow, Tray, Menu, globalShortcut,
   ipcMain, shell, clipboard, nativeImage, nativeTheme,
-  desktopCapturer, screen, dialog, systemPreferences
+  desktopCapturer, screen, dialog, systemPreferences, safeStorage
 } from 'electron';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -23,6 +23,8 @@ app.setName('EasyTranslate');
 
 let mainWin = null, jsonWin = null, tray = null, captureWin = null;
 let pinWins = [];
+const AUTH_ACCOUNTS_KEY = 'authAccounts';
+const AUTH_ACCOUNTS_ENCRYPTED_KEY = 'authAccountsEncrypted';
 
 function captureDebugEnabled() {
   return process.env.ET_CAPTURE_DEBUG === '1';
@@ -342,7 +344,7 @@ function createTray() {
   tray.setToolTip('EasyTranslate');
   const trayMenu = Menu.buildFromTemplate([
     { label: '\u663e\u793a EasyTranslate', accelerator: 'CommandOrControl+Shift+T', click: toggleMainWindow },
-    { label: 'JSON \u683c\u5f0f\u5316\u5de5\u5177', click: () => { if(jsonWin){jsonWin.show();jsonWin.focus();} } },
+    { label: '\u5de5\u5177\u5927\u7a97\u53e3', click: () => openToolsWindow('json') },
     { type: 'separator' },
     { label: '\u9000\u51fa', accelerator: 'Command+Q', click: () => app.exit(0) }
   ]);
@@ -380,13 +382,12 @@ function registerIPC() {
   ipcMain.handle('et:clear-history',()         => clearHistory());
   ipcMain.handle('et:get-theme',    ()         => getTheme());
   ipcMain.handle('et:set-theme',    (_, t)     => setTheme(t));
+  ipcMain.handle('et:get-auth-accounts', () => getAuthAccounts());
+  ipcMain.handle('et:set-auth-accounts', (_, accounts) => setAuthAccounts(accounts));
   ipcMain.on('et:window-close',    e => { const w = BrowserWindow.fromWebContents(e.sender); if(w) w.hide(); });
   ipcMain.on('et:window-minimize', e => { const w = BrowserWindow.fromWebContents(e.sender); if(w) w.minimize(); });
-  ipcMain.handle('et:open-json-window', async (_, draft) => {
-    if (draft) await setValue('jsonDraft', draft);
-    if (jsonWin) { jsonWin.show(); jsonWin.focus(); }
-    if (draft && jsonWin) jsonWin.webContents.send('et:load-json-draft');
-  });
+  ipcMain.handle('et:open-tools-window', async (_, tab = 'json', draft) => openToolsWindow(tab, draft));
+  ipcMain.handle('et:open-json-window', async (_, draft) => openToolsWindow('json', draft));
   ipcMain.handle('et:open-url',       (_, url) => shell.openExternal(url));
   ipcMain.handle('et:set-login-item', (_, en)  =>
     app.setLoginItemSettings({ openAtLogin: en, openAsHidden: true }));
@@ -426,6 +427,54 @@ function registerIPC() {
   ipcMain.on('et:pin-close', e => {
     const w = BrowserWindow.fromWebContents(e.sender); if (w) w.close();
   });
+}
+
+async function openToolsWindow(tab = 'json', draft) {
+  const targetTab = tab === 'base64' ? 'base64' : 'json';
+  if (draft && targetTab === 'json') await setValue('jsonDraft', draft);
+  if (jsonWin) {
+    jsonWin.show();
+    jsonWin.focus();
+    jsonWin.webContents.send('et:load-tools-tab', { tab: targetTab });
+    if (draft && targetTab === 'json') jsonWin.webContents.send('et:load-json-draft');
+  }
+}
+
+async function getAuthAccounts() {
+  const encrypted = await getValue(AUTH_ACCOUNTS_ENCRYPTED_KEY, null);
+  if (encrypted && encrypted.data) return decryptAuthAccounts(encrypted.data);
+
+  const legacy = await getValue(AUTH_ACCOUNTS_KEY, null);
+  if (Array.isArray(legacy)) {
+    await setAuthAccounts(legacy);
+    await deleteValue(AUTH_ACCOUNTS_KEY);
+    return legacy;
+  }
+  return [];
+}
+
+async function setAuthAccounts(accounts) {
+  if (!safeStorage.isEncryptionAvailable()) {
+    throw new Error('系统加密能力不可用，无法保存 Authenticator 数据');
+  }
+  const safeAccounts = Array.isArray(accounts) ? accounts : [];
+  const encrypted = safeStorage.encryptString(JSON.stringify(safeAccounts)).toString('base64');
+  await setValue(AUTH_ACCOUNTS_ENCRYPTED_KEY, {
+    version: 1,
+    data: encrypted,
+    updatedAt: Date.now()
+  });
+  await deleteValue(AUTH_ACCOUNTS_KEY);
+}
+
+function decryptAuthAccounts(data) {
+  try {
+    const raw = safeStorage.decryptString(Buffer.from(data, 'base64'));
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
 }
 
 function watchTheme() {

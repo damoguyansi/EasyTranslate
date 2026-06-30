@@ -33,7 +33,7 @@
     <nav class="tabs" id="tabs">
       <button class="tab active" data-tab="translate"><span>🌐</span>翻译</button>
       <button class="tab" data-tab="password"><span>🔐</span>密码</button>
-      <button class="tab" data-tab="base64"><span>🔁</span>Base64</button>
+      <button class="tab" data-tab="auth"><span>🔢</span>Auth</button>
       <button class="tab" data-tab="json"><span>{ }</span>JSON</button>
     </nav>
 
@@ -115,20 +115,17 @@
         </div>
       </section>
 
-      <!-- Base64 -->
-      <section class="panel" id="panel-base64">
-        <div class="card glass">
-          <textarea id="base64Input" class="field mono tall" placeholder="输入需要编码或解码的文本…"></textarea>
+      <!-- Authenticator -->
+      <section class="panel" id="panel-auth">
+        <div class="auth-actions">
+          <button id="authPasteBtn" class="btn btn-primary">粘贴二维码添加</button>
+          <button id="authRefreshBtn" class="btn">刷新</button>
         </div>
-        <div class="btn-row">
-          <button id="encodeBtn" class="btn btn-primary">🔒 编码</button>
-          <button id="decodeBtn" class="btn btn-primary">🔓 解码</button>
-          <button id="b64ClearBtn" class="btn btn-danger">清空</button>
+        <div id="authHint" class="big-hint">
+          <span>复制 Google Authenticator 二维码图片后，在此页按 Ctrl+V 自动添加。</span>
         </div>
-        <div class="card glass">
-          <textarea id="base64Output" class="field mono tall" placeholder="结果将显示在这里…" readonly></textarea>
-          <div class="io-bar"><span class="muted">结果</span><button id="b64CopyBtn" class="link-btn">⧉ 复制</button></div>
-        </div>
+        <div id="authError" class="alert"></div>
+        <div id="authList" class="auth-list"></div>
       </section>
 
       <!-- JSON -->
@@ -140,6 +137,7 @@
           <button id="jsonCopyBtn" class="btn">⧉ 复制</button>
           <button id="jsonClearBtn" class="btn btn-danger">清空</button>
           <button id="jsonOpenBtn" class="btn btn-primary">🔗 在新标签打开</button>
+          <button id="base64OpenBtn" class="btn">Base64</button>
         </div>
         <div id="jsonBigHint" class="big-hint" style="display:none">
           <span>文本较大，建议在完整页面处理（带树形视图与更多工具）</span>

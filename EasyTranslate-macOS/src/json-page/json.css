@@ -77,6 +77,28 @@ body {
   padding: 14px 18px;
   border-radius: var(--r-lg);
 }
+.tool-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--r-lg);
+}
+.tool-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  min-width: 110px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.tool-tab:hover { color: var(--brand-1); }
+.tool-tab.active { background: var(--brand-1); color: #fff; }
+.tool-panel { display: none; flex: 1; min-height: 0; flex-direction: column; gap: 10px; }
+.tool-panel.active { display: flex; }
 .toolbar .sep {
   width: 1px;
   height: 22px;
@@ -336,6 +358,32 @@ body { padding: 0; }
 .pane { border-radius: 8px; min-height: 0; }
 .pane-head { padding: 9px 12px; font-size: 12px; }
 .editor-body, .tree { height: 100%; min-height: 0; }
+.tool-tabs { border-radius: 8px; padding: 3px; }
+.tool-tab { padding: 6px 12px; border-radius: 5px; }
+.base64-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+.tool-textarea {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-1);
+  padding: 14px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+@media (max-width: 900px) {
+  .base64-grid { grid-template-columns: 1fr; }
+}
 
 /* 底部状态栏 + 提示信息（小字号，右对齐）*/
 .statusbar {

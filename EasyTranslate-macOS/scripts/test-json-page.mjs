@@ -25,3 +25,15 @@ test('json.html has app-region style', () => {
   const src = readFileSync('src/json-page/json.html', 'utf8');
   assert.ok(src.includes('-webkit-app-region'));
 });
+
+test('tools window contains JSON and Base64 tabs', () => {
+  const html = readFileSync('src/json-page/json.html', 'utf8');
+  const js = readFileSync('src/json-page/json.js', 'utf8');
+  assert.ok(html.includes('data-tool-tab="json"'));
+  assert.ok(html.includes('data-tool-tab="base64"'));
+  assert.ok(html.includes('base64Input'));
+  assert.ok(html.includes('base64Output'));
+  assert.ok(js.includes("from '../lib/base64.js'"));
+  assert.ok(js.includes('onLoadToolsTab'));
+  assert.ok(js.includes('switchToolTab'));
+});

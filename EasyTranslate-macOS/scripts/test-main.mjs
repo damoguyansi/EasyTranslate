@@ -8,11 +8,30 @@ test('main.js has all IPC channels', () => {
     'et:store-get','et:store-set','et:store-delete',
     'et:get-history','et:add-history','et:clear-history',
     'et:get-theme','et:set-theme',
+    'et:get-auth-accounts','et:set-auth-accounts',
     'et:window-close','et:window-minimize',
-    'et:open-json-window','et:open-url',
+    'et:open-tools-window','et:open-json-window','et:open-url',
     'et:set-login-item','et:get-login-item'
   ];
   for (const ch of chs) assert.ok(src.includes("'" + ch + "'"), 'missing channel: ' + ch);
+});
+
+test('main.js encrypts Authenticator accounts and migrates legacy plaintext', () => {
+  const src = readFileSync('electron/main.js', 'utf8');
+  assert.ok(src.includes('safeStorage'));
+  assert.ok(src.includes('AUTH_ACCOUNTS_ENCRYPTED_KEY'));
+  assert.ok(src.includes('safeStorage.encryptString'));
+  assert.ok(src.includes('safeStorage.decryptString'));
+  assert.ok(src.includes('deleteValue(AUTH_ACCOUNTS_KEY)'));
+  assert.ok(src.includes("getValue(AUTH_ACCOUNTS_KEY"));
+});
+
+test('main.js keeps openJsonWindow compatibility through tools window', () => {
+  const src = readFileSync('electron/main.js', 'utf8');
+  assert.ok(src.includes("openToolsWindow('json', draft)"));
+  assert.ok(src.includes("jsonWin.webContents.send('et:load-tools-tab'"));
+  assert.ok(src.includes("targetTab === 'json'"));
+  assert.ok(src.includes("tab === 'base64'"));
 });
 
 test('main.js has both global shortcuts', () => {

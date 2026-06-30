@@ -13,8 +13,29 @@ test('popup.js has initMacOS and macOS features', () => {
   assert.ok(src.includes('initMacOS'));
   assert.ok(src.includes('onTranslateSelection'));
   assert.ok(src.includes('getLoginItem'));
-  assert.ok(src.includes('openJsonWindow'));
+  assert.ok(src.includes('openToolsWindow'));
   assert.ok(src.includes('onThemeChange'));
+});
+
+test('popup moves Base64 out and adds Authenticator panel', () => {
+  const html = readFileSync('src/popup/popup.html', 'utf8');
+  const js = readFileSync('src/popup/popup.js', 'utf8');
+  assert.ok(!html.includes('data-tab="base64"'));
+  assert.ok(html.includes('data-tab="auth"'));
+  assert.ok(html.includes('authPasteBtn'));
+  assert.ok(html.includes('base64OpenBtn'));
+  assert.ok(!html.includes('base64Input'));
+  assert.ok(js.includes("from '../authenticator/authenticator.js'"));
+  assert.ok(js.includes("from 'jsqr'"));
+  assert.ok(js.includes('getAuthAccounts'));
+  assert.ok(js.includes('setAuthAccounts'));
+  assert.ok(!js.includes("setValue('authAccounts'"));
+  assert.ok(!js.includes("getValue('authAccounts'"));
+  assert.ok(js.includes("document.addEventListener('paste'"));
+  assert.ok(js.indexOf('const imageItem') < js.indexOf('const textItem'));
+  assert.ok(js.includes('navigator.clipboard.read'));
+  assert.ok(js.includes('scanQrCanvas'));
+  assert.ok(js.includes("inversionAttempts: 'attemptBoth'"));
 });
 
 test('popup.html is popover style (no custom titlebar) with login item', () => {

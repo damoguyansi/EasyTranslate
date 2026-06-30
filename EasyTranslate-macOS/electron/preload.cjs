@@ -14,10 +14,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Theme
   getTheme:  function() { return ipcRenderer.invoke('et:get-theme'); },
   setTheme:  function(theme) { return ipcRenderer.invoke('et:set-theme', theme); },
+  // Authenticator encrypted storage
+  getAuthAccounts: function() { return ipcRenderer.invoke('et:get-auth-accounts'); },
+  setAuthAccounts: function(accounts) { return ipcRenderer.invoke('et:set-auth-accounts', accounts); },
   // Window
   windowClose:    function() { ipcRenderer.send('et:window-close'); },
   windowMinimize: function() { ipcRenderer.send('et:window-minimize'); },
   // JSON window
+  openToolsWindow: function(tab, draft) { return ipcRenderer.invoke('et:open-tools-window', tab, draft); },
   openJsonWindow: function(draft) { return ipcRenderer.invoke('et:open-json-window', draft); },
   // External URL
   openUrl: function(url) { return ipcRenderer.invoke('et:open-url', url); },
@@ -43,6 +47,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onTranslateSelection: function(cb) { ipcRenderer.on('et:translate-selection',  function(_, text)  { cb(text); }); },
   onThemeChange:        function(cb) { ipcRenderer.on('et:system-theme-changed', function(_, theme) { cb(theme); }); },
   onLoadJsonDraft:      function(cb) { ipcRenderer.on('et:load-json-draft',      function()         { cb(); }); },
+  onLoadToolsTab:       function(cb) { ipcRenderer.on('et:load-tools-tab',       function(_, data)  { cb(data); }); },
   // Platform
   platform: process.platform
 });

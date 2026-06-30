@@ -14,10 +14,11 @@ test('preload.cjs exposes all APIs', () => {
     'storageGet','storageSet','storageDelete',
     'getHistory','addHistory','clearHistory',
     'getTheme','setTheme',
+    'getAuthAccounts','setAuthAccounts',
     'windowClose','windowMinimize',
-    'openJsonWindow','openUrl',
+    'openToolsWindow','openJsonWindow','openUrl',
     'setLoginItem','getLoginItem',
-    'onTranslateSelection','onThemeChange','onLoadJsonDraft',
+    'onTranslateSelection','onThemeChange','onLoadJsonDraft','onLoadToolsTab',
     'platform'
   ];
   for (const a of apis) assert.ok(src.includes(a), 'missing API: ' + a);

@@ -10,6 +10,7 @@ import {
   getJSONStats,
   formatFileSize
 } from '../lib/json.js';
+import { encodeBase64, decodeBase64, isValidBase64 } from '../lib/base64.js';
 import { copyToClipboard, toast, flashButton } from '../lib/ui.js';
 import { getTheme, setTheme } from '../storage-ipc.js';
 
@@ -42,7 +43,11 @@ function applyTheme(theme) {
 
 document.addEventListener('DOMContentLoaded', async () => {
   await initTheme();
+  initToolTabs();
   window.electronAPI && window.electronAPI.onThemeChange(function(theme) { applyTheme(theme); });
+  window.electronAPI && window.electronAPI.onLoadToolsTab(function(data) {
+    switchToolTab(data && data.tab || 'json');
+  });
   // 窗口置顶（钉子）
   (function initPin() {
     var api = window.electronAPI, btn = document.getElementById('pinToggle');
@@ -214,7 +219,69 @@ document.addEventListener('DOMContentLoaded', async () => {
     /* ignore */
   }
   refresh();
+  initBase64();
 });
+
+function initToolTabs() {
+  document.querySelectorAll('.tool-tab').forEach((tab) => {
+    tab.addEventListener('click', () => switchToolTab(tab.dataset.toolTab));
+  });
+}
+
+function switchToolTab(tabName) {
+  const target = tabName === 'base64' ? 'base64' : 'json';
+  document.querySelectorAll('.tool-tab').forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.toolTab === target);
+  });
+  document.querySelectorAll('.tool-panel').forEach((panel) => {
+    panel.classList.toggle('active', panel.id === `tool-panel-${target}`);
+  });
+  const focusId = target === 'base64' ? 'base64Input' : 'jsonEditor';
+  setTimeout(() => document.getElementById(focusId)?.focus(), 50);
+}
+
+function initBase64() {
+  const input = $('base64Input');
+  const output = $('base64Output');
+  const errBox = $('base64Error');
+  const showErr = (m) => {
+    errBox.textContent = m;
+    errBox.classList.add('show');
+  };
+  const hideErr = () => errBox.classList.remove('show');
+  $('encodeBtn').addEventListener('click', () => {
+    hideErr();
+    if (!input.value) return toast('请输入文本', 'error');
+    try {
+      output.value = encodeBase64(input.value);
+      toast('已编码', 'success');
+    } catch (e) {
+      showErr(e.message);
+    }
+  });
+  $('decodeBtn').addEventListener('click', () => {
+    hideErr();
+    if (!input.value) return toast('请输入 Base64 字符串', 'error');
+    if (!isValidBase64(input.value.trim())) return showErr('不是有效的 Base64 字符串');
+    try {
+      output.value = decodeBase64(input.value.trim());
+      toast('已解码', 'success');
+    } catch (e) {
+      showErr(e.message);
+    }
+  });
+  $('b64ClearBtn').addEventListener('click', () => {
+    input.value = '';
+    output.value = '';
+    hideErr();
+  });
+  $('b64CopyBtn').addEventListener('click', async (e) => {
+    if (!output.value) return toast('没有可复制的结果', 'error');
+    (await copyToClipboard(output.value))
+      ? (flashButton(e.target, '已复制'), toast('已复制', 'success'))
+      : toast('复制失败', 'error');
+  });
+}
 
 /* ===== 树构建 ===== */
 function describe(v) {
