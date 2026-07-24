@@ -34,6 +34,16 @@ test('main.js keeps openJsonWindow compatibility through tools window', () => {
   assert.ok(src.includes("tab === 'base64'"));
 });
 
+test('main.js provides native edit context menus for text fields', () => {
+  const src = readFileSync('electron/main.js', 'utf8');
+  assert.ok(src.includes('function attachEditContextMenu'));
+  assert.ok(src.includes("win.webContents.on('context-menu'"));
+  assert.ok(src.includes('params.isEditable'));
+  assert.ok(src.includes("{ role: 'paste'"));
+  assert.ok(src.includes('attachEditContextMenu(mainWin)'));
+  assert.ok(src.includes('attachEditContextMenu(jsonWin)'));
+});
+
 test('main.js has both global shortcuts', () => {
   const src = readFileSync('electron/main.js', 'utf8');
   assert.ok(src.includes('CommandOrControl+Shift+T'));
@@ -51,6 +61,31 @@ test('main.js hides window on close, does not quit', () => {
   const src = readFileSync('electron/main.js', 'utf8');
   assert.ok(src.includes('e.preventDefault()'));
   assert.ok(src.includes('mainWin.hide'));
+});
+
+test('main popover hides reliably when focus leaves the app', () => {
+  const src = readFileSync('electron/main.js', 'utf8');
+  assert.ok(src.includes('function hideMainWindow'));
+  assert.ok(src.includes('function notifyMainWindowShown'));
+  assert.ok(src.includes('function focusMainWindowSoon'));
+  assert.ok(src.includes('lastMainToggleAt'));
+  assert.ok(src.includes("webContents.send('et:popup-shown'"));
+  assert.ok(src.includes("app.on('deactivate', () => hideMainWindow())"));
+  assert.ok(src.includes("app.on('browser-window-focus'"));
+  assert.ok(src.includes('win !== mainWin'));
+  assert.ok(src.includes("if (mainWin.isVisible()) { mainWin.hide(); return; }"));
+  assert.ok(src.includes('Date.now() - lastMainToggleAt < 300'));
+  assert.ok(src.includes('setTimeout(focus, 40)'));
+  assert.ok(src.includes('focus(true)'));
+});
+
+test('main window stays usable from fullscreen spaces and opens quickly', () => {
+  const src = readFileSync('electron/main.js', 'utf8');
+  assert.ok(src.includes('mainWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })'));
+  assert.ok(src.includes("mainWin.setAlwaysOnTop(true, 'screen-saver')"));
+  assert.ok(src.includes('mainWin.showInactive()'));
+  assert.ok(src.includes('mainWin.moveTop()'));
+  assert.ok(src.includes('mainWinReady'));
 });
 
 test('capture window hover detection does not depend on accessibility prompt', () => {
@@ -74,6 +109,21 @@ test('screen recording permission is prompted only after capture fails', () => {
   assert.ok(showMessageIndex > captureIndex, 'prompt should happen after capture fails');
   assert.ok(openSettingsIndex > showMessageIndex, 'settings should open after prompt setup');
   assert.ok(src.includes("buttons: ['打开系统设置', '稍后']"));
+});
+
+test('capture window handles Escape in the main process as a renderer fallback', () => {
+  const src = readFileSync('electron/main.js', 'utf8');
+  assert.ok(src.includes("captureWin.webContents.on('before-input-event'"));
+  assert.ok(src.includes("input.key === 'Escape'"));
+  assert.ok(src.includes('event.preventDefault()'));
+  assert.ok(src.includes('closeCapture()'));
+});
+
+test('capture close keeps a newly opened window reference intact', () => {
+  const src = readFileSync('electron/main.js', 'utf8');
+  assert.ok(src.includes('const captureRef = captureWin'));
+  assert.ok(src.includes('if (captureWin === captureRef) captureWin = null'));
+  assert.ok(src.includes('captureWin = null;\n  if (captureRef)'));
 });
 
 test('capture sends window detection metadata after async enumeration', () => {

@@ -45,6 +45,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   pinClose:      function() { ipcRenderer.send('et:pin-close'); },
   // Events (one-time bind; caller ensures single registration)
   onTranslateSelection: function(cb) { ipcRenderer.on('et:translate-selection',  function(_, text)  { cb(text); }); },
+  onPopupShown:         function(cb) { ipcRenderer.on('et:popup-shown',          function()         { cb(); }); },
   onThemeChange:        function(cb) { ipcRenderer.on('et:system-theme-changed', function(_, theme) { cb(theme); }); },
   onLoadJsonDraft:      function(cb) { ipcRenderer.on('et:load-json-draft',      function()         { cb(); }); },
   onLoadToolsTab:       function(cb) { ipcRenderer.on('et:load-tools-tab',       function(_, data)  { cb(data); }); },

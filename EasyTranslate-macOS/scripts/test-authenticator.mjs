@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 const {
   parseOtpAuthUri,
   generateTotp,
-  base32Decode
+  base32Decode,
+  reorderAuthAccounts
 } = await import('../src/authenticator/authenticator.js');
 
 test('parseOtpAuthUri parses standard TOTP uri', () => {
@@ -44,4 +45,17 @@ test('generateTotp matches RFC 6238 SHA1 vector', async () => {
   assert.equal(await generateTotp(account, 59000), '94287082');
   assert.equal(await generateTotp(account, 1111111109000), '07081804');
   assert.equal(await generateTotp(account, 1111111111000), '14050471');
+});
+
+test('reorderAuthAccounts follows dragged DOM order without mutating accounts', () => {
+  const accounts = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+  const reordered = reorderAuthAccounts(accounts, ['c', 'a', 'b']);
+  assert.deepEqual(reordered.map((account) => account.id), ['c', 'a', 'b']);
+  assert.deepEqual(accounts.map((account) => account.id), ['a', 'b', 'c']);
+});
+
+test('reorderAuthAccounts ignores unknown and duplicate ids and keeps omitted accounts', () => {
+  const accounts = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+  const reordered = reorderAuthAccounts(accounts, ['b', 'missing', 'b']);
+  assert.deepEqual(reordered.map((account) => account.id), ['b', 'a', 'c']);
 });

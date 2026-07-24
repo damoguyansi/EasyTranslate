@@ -18,7 +18,7 @@ test('preload.cjs exposes all APIs', () => {
     'windowClose','windowMinimize',
     'openToolsWindow','openJsonWindow','openUrl',
     'setLoginItem','getLoginItem',
-    'onTranslateSelection','onThemeChange','onLoadJsonDraft','onLoadToolsTab',
+    'onTranslateSelection','onPopupShown','onThemeChange','onLoadJsonDraft','onLoadToolsTab',
     'platform'
   ];
   for (const a of apis) assert.ok(src.includes(a), 'missing API: ' + a);

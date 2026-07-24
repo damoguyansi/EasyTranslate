@@ -82,6 +82,9 @@ body {
   gap: 4px;
   padding: 4px;
   border-radius: var(--r-lg);
+  -webkit-app-region: no-drag;
+  user-select: none;
+  align-items: center;
 }
 .tool-tab {
   appearance: none;
@@ -94,6 +97,7 @@ body {
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
+  -webkit-app-region: no-drag;
 }
 .tool-tab:hover { color: var(--brand-1); }
 .tool-tab.active { background: var(--brand-1); color: #fff; }
@@ -138,6 +142,7 @@ body {
   }
 }
 .pane {
+  position: relative;
   border-radius: var(--r-lg);
   display: flex;
   flex-direction: column;
@@ -172,35 +177,101 @@ body {
 
 /* 编辑区 + 行号 */
 .editor-body {
+  position: relative;
   display: flex;
   height: 60vh;
   min-height: 420px;
 }
-.gutter {
-  margin: 0;
-  padding: 14px 8px 14px 14px;
-  text-align: right;
-  color: var(--text-3);
-  font-size: 13px;
-  line-height: 1.7;
+.editor-search-panel {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card-bg, #fff);
+  box-shadow: 0 8px 26px rgba(15, 23, 42, 0.14);
+  -webkit-app-region: no-drag;
+}
+.editor-search-panel[hidden] {
+  display: none !important;
+}
+[data-theme='dark'] .editor-search-panel {
+  background: #1e222a;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.28);
+}
+.search-field {
+  width: 180px;
+  min-width: 120px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--field-bg);
+  color: var(--text-1);
+  font-size: 12px;
+}
+.search-count {
+  min-width: 44px;
+  text-align: center;
+  font-size: 11px;
+}
+.icon-mini {
+  appearance: none;
+  border: none;
   background: transparent;
-  border-right: 1px solid var(--line);
-  user-select: none;
-  overflow: hidden;
-  min-width: 46px;
+  color: var(--text-2);
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.icon-mini:hover {
+  color: var(--brand-1);
+  background: rgba(127,127,127,.12);
 }
 .editor {
   flex: 1;
-  border: none;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.cm-editor {
+  height: 100%;
   background: transparent;
   color: var(--text-1);
-  resize: none;
-  outline: none;
-  padding: 14px;
   font-size: 13px;
+}
+.cm-editor.cm-focused { outline: none; }
+.cm-scroller {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   line-height: 1.7;
-  white-space: pre;
-  overflow: auto;
+}
+.cm-gutters {
+  background: transparent;
+  color: var(--text-3);
+  border-right: 1px solid var(--line);
+}
+.cm-activeLine,
+.cm-activeLineGutter {
+  background: rgba(99, 102, 241, 0.08);
+}
+.cm-search-hit {
+  background: rgba(245, 158, 11, 0.28);
+  border-radius: 2px;
+}
+.tree-hit {
+  background: rgba(245, 158, 11, 0.26);
+  border-radius: 3px;
+}
+.tree-hit-active {
+  outline: 1px solid rgba(245, 158, 11, 0.85);
+  outline-offset: 1px;
 }
 
 /* 树视图 */
@@ -281,6 +352,15 @@ body {
   font-size: 11px;
   margin-left: 6px;
 }
+.tjson-preview {
+  color: var(--text-3);
+  max-width: min(360px, 54%);
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
 .tree-empty {
   color: var(--text-3);
   text-align: center;
@@ -325,7 +405,7 @@ body { padding: 0; }
 .wrap {
   max-width: none;                 /* 不再限制 1480，随窗口变大 */
   height: 100vh;
-  padding: 40px 14px 14px;         /* 顶部 40px 标题栏条，放交通灯（可拖拽）*/
+  padding: 14px;
   gap: 10px;
 }
 
@@ -342,16 +422,13 @@ body { padding: 0; }
 .icon-btn { width: 30px; height: 30px; border-radius: 6px; }
 .icon-btn.active { background: var(--brand-1) !important; color: #fff !important; border-color: var(--brand-1) !important; }
 
-/* 顶部交通灯条右侧：置顶按钮（在 40px 标题栏条内垂直居中，靠右）*/
-.titlebar-actions {
-  position: fixed; top: 0; right: 12px; height: 40px; z-index: 50;
-  display: flex; align-items: center;
-  -webkit-app-region: no-drag;
+.tool-tabs-spacer {
+  flex: 1;
 }
-.titlebar-actions .icon-btn {
+.tool-tabs .icon-btn {
   width: 26px; height: 26px; border: none; background: transparent; color: var(--text-2);
 }
-.titlebar-actions .icon-btn:hover { color: var(--brand-1); background: rgba(127,127,127,.12); }
+.tool-tabs .icon-btn:hover { color: var(--brand-1); background: rgba(127,127,127,.12); }
 
 /* 双栏随窗口高度自适应填满 */
 .panes { flex: 1; min-height: 0; }

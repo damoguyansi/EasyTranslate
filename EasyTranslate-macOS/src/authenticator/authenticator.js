@@ -51,6 +51,25 @@ export function getTotpRemaining(account, now = Date.now()) {
   return period - (Math.floor(now / 1000) % period);
 }
 
+export function reorderAuthAccounts(accounts, orderedIds) {
+  const source = Array.isArray(accounts) ? accounts : [];
+  const byId = new Map(source.map((account) => [account.id, account]));
+  const used = new Set();
+  const ordered = [];
+
+  for (const id of Array.isArray(orderedIds) ? orderedIds : []) {
+    if (!byId.has(id) || used.has(id)) continue;
+    ordered.push(byId.get(id));
+    used.add(id);
+  }
+  for (const account of source) {
+    if (used.has(account.id)) continue;
+    ordered.push(account);
+    used.add(account.id);
+  }
+  return ordered;
+}
+
 export async function generateTotp(account, now = Date.now()) {
   const period = account.period || DEFAULTS.period;
   const counter = Math.floor(now / 1000 / period);

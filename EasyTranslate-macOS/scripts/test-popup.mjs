@@ -17,6 +17,16 @@ test('popup.js has initMacOS and macOS features', () => {
   assert.ok(src.includes('onThemeChange'));
 });
 
+test('popup selects existing translate text when opened or focused', () => {
+  const src = readFileSync('src/popup/popup.js', 'utf8');
+  assert.ok(src.includes('function focusTranslateInput'));
+  assert.ok(src.includes('window.addEventListener(\'focus\', () => focusTranslateInput(true))'));
+  assert.ok(src.includes('onPopupShown'));
+  assert.ok(src.includes('visibilitychange'));
+  assert.ok(src.includes('input.select()'));
+  assert.ok(src.includes("if (id === 'translate') setTimeout(() => focusTranslateInput(true), 60)"));
+});
+
 test('popup moves Base64 out and adds Authenticator panel', () => {
   const html = readFileSync('src/popup/popup.html', 'utf8');
   const js = readFileSync('src/popup/popup.js', 'utf8');
@@ -36,6 +46,49 @@ test('popup moves Base64 out and adds Authenticator panel', () => {
   assert.ok(js.includes('navigator.clipboard.read'));
   assert.ok(js.includes('scanQrCanvas'));
   assert.ok(js.includes("inversionAttempts: 'attemptBoth'"));
+});
+
+test('authenticator list supports right-click remarks', () => {
+  const js = readFileSync('src/popup/popup.js', 'utf8');
+  const css = readFileSync('src/popup/popup.css', 'utf8');
+  assert.ok(js.includes("listEl.addEventListener('contextmenu'"));
+  assert.ok(js.includes('showAuthContextMenu'));
+  assert.ok(js.includes('normalizeRemark'));
+  assert.ok(js.includes('添加/修改备注'));
+  assert.ok(js.includes('清除备注'));
+  assert.ok(js.includes('备注不能超过 20 个字符'));
+  assert.ok(js.includes('authRemarkDialog'));
+  assert.ok(js.includes('ensureRemarkDialog'));
+  assert.ok(!js.includes('window.prompt'));
+  assert.ok(js.includes('auth-remark'));
+  assert.ok(css.includes('.auth-context-menu'));
+  assert.ok(css.includes('.auth-remark-dialog'));
+  assert.ok(css.includes('.auth-remark-card'));
+});
+
+test('authenticator list supports persistent drag sorting and highlighted remarks', () => {
+  const js = readFileSync('src/popup/popup.js', 'utf8');
+  const css = readFileSync('src/popup/popup.css', 'utf8');
+  assert.ok(js.includes('reorderAuthAccounts'));
+  assert.ok(js.includes("listEl.addEventListener('pointerdown'"));
+  assert.ok(js.includes("listEl.addEventListener('pointermove'"));
+  assert.ok(js.includes("listEl.addEventListener('pointerup'"));
+  assert.ok(js.includes("listEl.addEventListener('pointercancel'"));
+  assert.ok(js.includes('setPointerCapture'));
+  assert.ok(js.includes('finishDrag'));
+  assert.ok(js.includes('await save()'));
+  assert.ok(css.includes('.auth-drag-handle'));
+  assert.ok(css.includes('.auth-item.is-dragging'));
+  assert.ok(css.includes('.auth-remark'));
+  assert.ok(css.includes('font-size: 11px'));
+});
+
+test('popup JSON format falls back to readable symbol wrapping', () => {
+  const js = readFileSync('src/popup/popup.js', 'utf8');
+  const lib = readFileSync('src/lib/json.js', 'utf8');
+  assert.ok(lib.includes('function formatLooseText'));
+  assert.ok(lib.includes('loose: true'));
+  assert.ok(js.includes('不是标准 JSON，已按符号换行'));
 });
 
 test('popup.html is popover style (no custom titlebar) with login item', () => {
@@ -65,6 +118,14 @@ test('capture overlay recalculates hovered window after async window update', ()
   assert.ok(src.includes('hoverWin = pickWin(lastPointer)'));
   assert.ok(src.includes('canDetectWindows'));
   assert.ok(!src.includes('开启辅助功能权限后可悬停高亮窗口'));
+});
+
+test('capture overlay supports double-click completion, toolbar clicks, and Escape cancellation', () => {
+  const src = readFileSync('src/capture/capture.js', 'utf8');
+  assert.ok(src.includes("addEventListener('dblclick'"));
+  assert.ok(src.includes("if (phase === 'ready' && sel && inSel(p))"));
+  assert.ok(src.includes("addEventListener('click'"));
+  assert.ok(src.includes("e.preventDefault(); api.captureCancel()"));
 });
 
 test('capture overlay does not expose debug diagnostics in production UI', () => {

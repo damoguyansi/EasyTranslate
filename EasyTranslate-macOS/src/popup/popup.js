@@ -2,7 +2,12 @@ import { translateText } from '../lib/translate.js';
 import { detectLanguage, defaultTarget, LANGUAGES } from '../lib/language.js';
 import { generatePassword, calculatePasswordStrength } from '../lib/password.js';
 import { formatJSON, compressJSON, validateJSON, getJSONStats, formatFileSize } from '../lib/json.js';
-import { parseOtpAuthUri, generateTotp, getTotpRemaining } from '../authenticator/authenticator.js';
+import {
+  parseOtpAuthUri,
+  generateTotp,
+  getTotpRemaining,
+  reorderAuthAccounts
+} from '../authenticator/authenticator.js';
 import { copyToClipboard, toast, flashButton } from '../lib/ui.js';
 import jsQR from 'jsqr';
 import {
@@ -30,7 +35,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   initAuth();
   initJSON();
   initMacOS();
-  setTimeout(() => $('inputText')?.focus(), 100);
+  setTimeout(() => focusTranslateInput(true), 100);
+  window.addEventListener('focus', () => focusTranslateInput(true));
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) setTimeout(() => focusTranslateInput(true), 40);
+  });
 });
 
 /* ===== 主题 ===== */
@@ -64,9 +73,17 @@ function initTabs() {
       document.querySelectorAll('.panel').forEach((p) => {
         p.classList.toggle('active', p.id === `panel-${id}`);
       });
-      if (id === 'translate') setTimeout(() => $('inputText').focus(), 60);
+      if (id === 'translate') setTimeout(() => focusTranslateInput(true), 60);
     });
   });
+}
+
+function focusTranslateInput(selectExisting = false) {
+  const input = $('inputText');
+  const panel = document.getElementById('panel-translate');
+  if (!input || !panel?.classList.contains('active')) return;
+  input.focus();
+  if (selectExisting && input.value) input.select();
 }
 
 /* ===== 翻译 ===== */
@@ -247,6 +264,11 @@ function initAuth() {
   const errBox = $('authError');
   let accounts = [];
   let timer = null;
+  let contextMenu = null;
+  let remarkDialog = null;
+  let draggingItem = null;
+  let dragPointerId = null;
+  let dragMoved = false;
 
   const showErr = (msg) => {
     errBox.textContent = msg;
@@ -262,6 +284,7 @@ function initAuth() {
   const activeAuthPanel = () => document.getElementById('panel-auth')?.classList.contains('active');
 
   async function render() {
+    if (draggingItem) return;
     if (!accounts.length) {
       listEl.innerHTML = '<div class="auth-empty">暂无账号，复制二维码图片后按 Ctrl+V 添加</div>';
       return;
@@ -274,10 +297,16 @@ function initAuth() {
       } catch {
         code = '错误';
       }
-      return `<div class="auth-item" data-id="${attr(account.id)}">
+      const remark = normalizeRemark(account.remark || '');
+      const remarkHtml = remark ? `<span class="auth-remark">@${esc(remark)}</span>` : '';
+      return `<div class="auth-item" data-id="${attr(account.id)}" title="拖拽排序">
+        <button type="button" class="auth-drag-handle" aria-label="拖拽排序" title="拖拽排序">⠿</button>
         <div class="auth-meta">
           <strong>${esc(account.issuer || 'Authenticator')}</strong>
-          <span>${esc(account.account || '')}</span>
+          <div class="auth-detail">
+            <span class="auth-account">${esc(account.account || '')}</span>
+            ${remarkHtml}
+          </div>
         </div>
         <button class="auth-code mono" data-act="copy" data-code="${attr(code)}">${esc(code)}</button>
         <span class="auth-left">${getTotpRemaining(account, now)}s</span>
@@ -291,6 +320,8 @@ function initAuth() {
     hideErr();
     try {
       const account = parseOtpAuthUri(text);
+      const existing = accounts.find((item) => item.id === account.id);
+      if (existing?.remark) account.remark = normalizeRemark(existing.remark);
       accounts = [account].concat(accounts.filter((item) => item.id !== account.id));
       await save();
       await render();
@@ -364,15 +395,211 @@ function initAuth() {
       toast('已删除', 'success');
     }
   });
+  listEl.addEventListener('contextmenu', (e) => {
+    const item = e.target.closest('.auth-item');
+    if (!item) return;
+    e.preventDefault();
+    showAuthContextMenu(item, e.clientX, e.clientY);
+  });
+  listEl.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || e.target.closest('[data-act]')) return;
+    const item = e.target.closest('.auth-item');
+    if (!item) return;
+    e.preventDefault();
+    draggingItem = item;
+    dragPointerId = e.pointerId;
+    dragMoved = false;
+    item.classList.add('is-dragging');
+    listEl.classList.add('is-sorting');
+    hideAuthContextMenu();
+    item.setPointerCapture(e.pointerId);
+  });
+  listEl.addEventListener('pointermove', (e) => {
+    if (!draggingItem || e.pointerId !== dragPointerId) return;
+    e.preventDefault();
+    const candidates = Array.from(listEl.querySelectorAll('.auth-item:not(.is-dragging)'));
+    const nextItem = candidates.find((item) => {
+      const rect = item.getBoundingClientRect();
+      return e.clientY < rect.top + rect.height / 2;
+    });
+    if (nextItem && draggingItem.nextElementSibling !== nextItem) {
+      listEl.insertBefore(draggingItem, nextItem);
+      dragMoved = true;
+    } else if (!nextItem && draggingItem !== listEl.lastElementChild) {
+      listEl.appendChild(draggingItem);
+      dragMoved = true;
+    }
+  });
+  listEl.addEventListener('pointerup', async (e) => {
+    if (!draggingItem || e.pointerId !== dragPointerId) return;
+    e.preventDefault();
+    await finishDrag(dragMoved);
+  });
+  listEl.addEventListener('pointercancel', async (e) => {
+    if (!draggingItem || e.pointerId !== dragPointerId) return;
+    await finishDrag(false);
+  });
+
+  async function finishDrag(shouldSave) {
+    const dragged = draggingItem;
+    draggingItem = null;
+    dragPointerId = null;
+    dragged.classList.remove('is-dragging');
+    listEl.classList.remove('is-sorting');
+    if (!shouldSave) {
+      await render();
+      return;
+    }
+    const orderedIds = Array.from(listEl.querySelectorAll('.auth-item'), (item) => item.dataset.id);
+    const previousIds = accounts.map((account) => account.id);
+    accounts = reorderAuthAccounts(accounts, orderedIds);
+    if (JSON.stringify(previousIds) !== JSON.stringify(orderedIds)) {
+      await save();
+      toast('排序已保存', 'success');
+    }
+    await render();
+  }
   document.addEventListener('paste', async (e) => {
     if (!activeAuthPanel()) return;
     const handled = await addFromClipboardEvent(e);
     if (handled) e.preventDefault();
   });
+  document.addEventListener('click', hideAuthContextMenu);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      hideAuthContextMenu();
+      closeRemarkDialog();
+    }
+  });
+  window.addEventListener('blur', hideAuthContextMenu);
   window.addEventListener('focus', render);
   timer = setInterval(render, 1000);
   window.addEventListener('beforeunload', () => clearInterval(timer));
   load();
+
+  function ensureAuthContextMenu() {
+    if (contextMenu) return contextMenu;
+    contextMenu = document.createElement('div');
+    contextMenu.id = 'authContextMenu';
+    contextMenu.className = 'auth-context-menu';
+    contextMenu.hidden = true;
+    contextMenu.innerHTML = `
+      <button type="button" data-auth-menu-act="remark">添加/修改备注</button>
+      <button type="button" data-auth-menu-act="clear">清除备注</button>
+    `;
+    contextMenu.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-auth-menu-act]');
+      if (!btn) return;
+      const id = contextMenu.dataset.id;
+      hideAuthContextMenu();
+      if (btn.dataset.authMenuAct === 'remark') editRemark(id);
+      if (btn.dataset.authMenuAct === 'clear') await clearRemark(id);
+    });
+    document.body.appendChild(contextMenu);
+    return contextMenu;
+  }
+
+  function showAuthContextMenu(item, x, y) {
+    const menu = ensureAuthContextMenu();
+    const account = accounts.find((entry) => entry.id === item.dataset.id);
+    if (!account) return;
+    menu.dataset.id = account.id;
+    menu.querySelector('[data-auth-menu-act="clear"]').hidden = !account.remark;
+    menu.hidden = false;
+    const rect = menu.getBoundingClientRect();
+    menu.style.left = `${Math.max(8, Math.min(x, window.innerWidth - rect.width - 8))}px`;
+    menu.style.top = `${Math.max(8, Math.min(y, window.innerHeight - rect.height - 8))}px`;
+  }
+
+  function hideAuthContextMenu() {
+    if (contextMenu) contextMenu.hidden = true;
+  }
+
+  function ensureRemarkDialog() {
+    if (remarkDialog) return remarkDialog;
+    remarkDialog = document.createElement('div');
+    remarkDialog.id = 'authRemarkDialog';
+    remarkDialog.className = 'auth-remark-dialog';
+    remarkDialog.hidden = true;
+    remarkDialog.innerHTML = `
+      <div class="auth-remark-backdrop" data-auth-remark-cancel></div>
+      <form class="auth-remark-card">
+        <label for="authRemarkInput">备注</label>
+        <input id="authRemarkInput" class="field" type="text" maxlength="20" placeholder="20 个字符以内" />
+        <div class="auth-remark-meta"><span id="authRemarkCount">0/20</span></div>
+        <div class="auth-remark-actions">
+          <button type="button" class="btn" data-auth-remark-cancel>取消</button>
+          <button type="submit" class="btn btn-primary">保存</button>
+        </div>
+      </form>
+    `;
+    const input = remarkDialog.querySelector('#authRemarkInput');
+    const updateCount = () => {
+      const count = Array.from(input.value || '').length;
+      remarkDialog.querySelector('#authRemarkCount').textContent = `${Math.min(count, 20)}/20`;
+      if (count > 20) input.value = normalizeRemark(input.value);
+    };
+    input.addEventListener('input', updateCount);
+    remarkDialog.addEventListener('click', (e) => {
+      if (e.target.closest('[data-auth-remark-cancel]')) closeRemarkDialog();
+    });
+    remarkDialog.querySelector('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await saveRemark(remarkDialog.dataset.id, input.value);
+    });
+    document.body.appendChild(remarkDialog);
+    return remarkDialog;
+  }
+
+  function editRemark(id) {
+    const account = accounts.find((entry) => entry.id === id);
+    if (!account) return;
+    const dialog = ensureRemarkDialog();
+    const input = dialog.querySelector('#authRemarkInput');
+    dialog.dataset.id = id;
+    input.value = account.remark || '';
+    dialog.querySelector('#authRemarkCount').textContent = `${Array.from(input.value).length}/20`;
+    dialog.hidden = false;
+    setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 0);
+  }
+
+  function closeRemarkDialog() {
+    if (!remarkDialog) return;
+    remarkDialog.hidden = true;
+    delete remarkDialog.dataset.id;
+  }
+
+  async function saveRemark(id, value) {
+    const account = accounts.find((entry) => entry.id === id);
+    if (!account) return;
+    if (Array.from(String(value || '').trim()).length > 20) {
+      showErr('备注不能超过 20 个字符');
+      return;
+    }
+    const remark = normalizeRemark(value);
+    if (remark) account.remark = remark;
+    else delete account.remark;
+    await save();
+    await render();
+    closeRemarkDialog();
+    toast(remark ? '已保存备注' : '已清除备注', 'success');
+  }
+
+  async function clearRemark(id) {
+    const account = accounts.find((entry) => entry.id === id);
+    if (!account) return;
+    delete account.remark;
+    await save();
+    await render();
+    toast('已清除备注', 'success');
+  }
+}
+
+function normalizeRemark(value) {
+  return Array.from(String(value || '').trim()).slice(0, 20).join('');
 }
 
 async function decodeQrFile(file) {
@@ -428,7 +655,9 @@ function initJSON() {
     hideErr();
     if (!editor.value) return toast('请输入 JSON', 'error');
     const r = formatJSON(editor.value, 2);
-    r.success ? ((editor.value = r.result), stats(), toast('已格式化', 'success')) : showErr(r.error);
+    r.success
+      ? ((editor.value = r.result), stats(), toast(r.loose ? '不是标准 JSON，已按符号换行' : '已格式化', 'success'))
+      : showErr(r.error);
   });
   $('jsonCompressBtn').addEventListener('click', () => {
     hideErr();
@@ -480,7 +709,13 @@ function initMacOS() {
   if (!api) return;
   // 截图：触发全屏标注覆盖层（弹窗会因失焦自动隐藏）
   var sb = document.getElementById('screenshotBtn');
-  if (sb) sb.addEventListener('click', function() { api.startCapture(); });
+  if (sb) sb.addEventListener('click', async function() {
+    try {
+      await api.startCapture();
+    } catch (e) {
+      toast('截图启动失败，请检查录屏权限', 'error');
+    }
+  });
   // 菜单栏弹窗风格：无自定义标题栏按钮，窗口靠托盘点击/失焦控制
   ['jsonOpenBtn','jsonBigOpen'].forEach(function(id) {
     var el = document.getElementById(id);
@@ -509,6 +744,11 @@ function initMacOS() {
       : theme;
     document.documentElement.setAttribute('data-theme', resolved);
   });
+  if (api.onPopupShown) {
+    api.onPopupShown(function() {
+      setTimeout(function() { focusTranslateInput(true); }, 40);
+    });
+  }
   api.onTranslateSelection(function(text) {
     var tab = document.querySelector('[data-tab="translate"]');
     if (tab) tab.click();

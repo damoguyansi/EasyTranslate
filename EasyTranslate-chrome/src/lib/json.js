@@ -20,8 +20,105 @@ export function formatJSON(jsonText, indent = 2) {
   try {
     return { success: true, result: JSON.stringify(JSON.parse(jsonText), null, indent) };
   } catch (e) {
+    const loose = formatLooseText(jsonText, indent);
+    if (loose.success) return loose;
     return { success: false, error: parseJSONError(e, jsonText) };
   }
+}
+
+/**
+ * 非标准 JSON / 类 JSON 文本的降级排版。
+ * 只按结构符号换行缩进，不尝试修正字段类型或补引号。
+ */
+export function formatLooseText(text, indent = 2) {
+  const source = String(text || '').trim();
+  if (!source) return { success: false, error: '内容不能为空' };
+  if (!/[{}\[\](),;:&]/.test(source)) return { success: false, error: '没有可用于换行的结构符号' };
+
+  const unit = indent === 'tab'
+    ? '\t'
+    : ' '.repeat(Number.isFinite(Number(indent)) ? Math.max(0, Number(indent)) : 2);
+  let result = '';
+  let level = 0;
+  let inString = false;
+  let quote = '';
+  let escaped = false;
+
+  const trimRight = () => {
+    result = result.replace(/[ \t]+$/g, '');
+  };
+  const newline = () => {
+    trimRight();
+    if (!result.endsWith('\n')) result += '\n';
+    result += unit.repeat(Math.max(0, level));
+  };
+
+  for (const ch of source) {
+    if (inString) {
+      result += ch;
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === quote) {
+        inString = false;
+        quote = '';
+      }
+      continue;
+    }
+
+    if (ch === '"' || ch === "'") {
+      inString = true;
+      quote = ch;
+      result += ch;
+      continue;
+    }
+
+    if (ch === '{' || ch === '[' || ch === '(') {
+      trimRight();
+      result += ch;
+      level += 1;
+      newline();
+      continue;
+    }
+
+    if (ch === '}' || ch === ']' || ch === ')') {
+      level = Math.max(0, level - 1);
+      newline();
+      result += ch;
+      continue;
+    }
+
+    if (ch === ',' || ch === ';' || ch === '&') {
+      trimRight();
+      result += ch;
+      newline();
+      continue;
+    }
+
+    if (ch === ':') {
+      trimRight();
+      result += ': ';
+      continue;
+    }
+
+    if (/\s/.test(ch)) {
+      if (result && !/[\s:]$/.test(result)) result += ' ';
+      continue;
+    }
+
+    result += ch;
+  }
+
+  const cleaned = result
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .filter((line, index, lines) => line.trim() || (index > 0 && index < lines.length - 1))
+    .join('\n')
+    .trim();
+
+  if (!cleaned || cleaned === source) return { success: false, error: '文本无需降级格式化' };
+  return { success: true, result: cleaned, loose: true };
 }
 
 export function compressJSON(jsonText) {

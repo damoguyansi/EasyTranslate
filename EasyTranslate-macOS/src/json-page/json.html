@@ -8,21 +8,20 @@
   <link rel="stylesheet" href="./json.css" />
 
   <style>
-    body { -webkit-app-region: drag; }
-    .tool-tabs, .toolbar, .editor-wrap, .stats, button, input, select, textarea { -webkit-app-region: no-drag; }
+    body { -webkit-app-region: no-drag; }
+    .wrap, .tool-tabs, .toolbar, .pane, .editor-body, .tree, .statusbar, button, input, select, textarea { -webkit-app-region: no-drag; }
+    .tool-tab { -webkit-app-region: no-drag; }
   </style>
 </head>
 <body>
-  <!-- 顶部交通灯条右侧：窗口置顶 -->
-  <div class="titlebar-actions">
-    <button id="pinToggle" class="icon-btn" title="窗口置顶">
-      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>
-    </button>
-  </div>
   <div class="wrap">
     <nav class="tool-tabs glass" id="toolTabs">
       <button class="tool-tab active" data-tool-tab="json">JSON</button>
       <button class="tool-tab" data-tool-tab="base64">Base64</button>
+      <span class="tool-tabs-spacer"></span>
+      <button id="pinToggle" class="icon-btn" title="窗口置顶">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>
+      </button>
     </nav>
 
     <section class="tool-panel active" id="tool-panel-json">
@@ -55,23 +54,39 @@
       </div>
 
       <div class="panes">
-        <section class="pane glass">
+        <section class="pane glass search-host" data-search-side="editor">
           <div class="pane-head">
             <span>📝 编辑区</span>
             <div class="tree-tools">
               <button id="expandAll" class="link-btn">全部展开</button>
               <button id="collapseAll" class="link-btn">全部折叠</button>
+              <button id="expandLevel1" class="link-btn">1 层</button>
+              <button id="expandLevel2" class="link-btn">2 层</button>
+              <button id="expandLevel3" class="link-btn">3 层</button>
             </div>
           </div>
           <div class="editor-body">
-            <pre id="gutter" class="gutter mono"></pre>
-            <textarea id="jsonEditor" class="editor mono" spellcheck="false" placeholder='粘贴或输入 JSON 数据…'></textarea>
+            <div id="editorSearchPanel" class="editor-search-panel" data-search-panel="editor" hidden>
+              <input id="editorSearchInput" class="field search-field" type="search" placeholder="搜索编辑区" />
+              <span id="editorSearchCount" class="muted search-count">0/0</span>
+              <button id="editorSearchPrevBtn" class="icon-mini" title="上一个">↑</button>
+              <button id="editorSearchNextBtn" class="icon-mini" title="下一个">↓</button>
+              <button id="editorSearchCloseBtn" class="icon-mini" title="关闭">×</button>
+            </div>
+            <div id="jsonEditor" class="editor mono"></div>
           </div>
         </section>
 
-        <section class="pane glass">
+        <section class="pane glass search-host" data-search-side="tree">
           <div class="pane-head"><span>🌲 树形视图</span><span id="rootType" class="muted"></span></div>
-          <div id="treeView" class="tree mono"></div>
+          <div id="treeSearchPanel" class="editor-search-panel" data-search-panel="tree" hidden>
+            <input id="treeSearchInput" class="field search-field" type="search" placeholder="搜索树形视图" />
+            <span id="treeSearchCount" class="muted search-count">0/0</span>
+            <button id="treeSearchPrevBtn" class="icon-mini" title="上一个">↑</button>
+            <button id="treeSearchNextBtn" class="icon-mini" title="下一个">↓</button>
+            <button id="treeSearchCloseBtn" class="icon-mini" title="关闭">×</button>
+          </div>
+          <div id="treeView" class="tree mono" tabindex="0"></div>
         </section>
       </div>
 

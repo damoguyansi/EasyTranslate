@@ -23,6 +23,8 @@ app.setName('EasyTranslate');
 
 let mainWin = null, jsonWin = null, tray = null, captureWin = null;
 let pinWins = [];
+let mainWinReady = false;
+let lastMainToggleAt = 0;
 const AUTH_ACCOUNTS_KEY = 'authAccounts';
 const AUTH_ACCOUNTS_ENCRYPTED_KEY = 'authAccountsEncrypted';
 
@@ -67,6 +69,57 @@ function pinURL() {
     : ('file://' + join(ROOT, 'dist/renderer/capture/pin.html'));
 }
 
+function attachEditContextMenu(win) {
+  win.webContents.on('context-menu', (_, params) => {
+    const template = [];
+    if (params.isEditable) {
+      template.push(
+        { role: 'undo', label: '撤销' },
+        { role: 'redo', label: '重做' },
+        { type: 'separator' },
+        { role: 'cut', label: '剪切' },
+        { role: 'copy', label: '复制' },
+        { role: 'paste', label: '粘贴' },
+        { role: 'delete', label: '删除' },
+        { type: 'separator' },
+        { role: 'selectAll', label: '全选' }
+      );
+    } else if (params.selectionText) {
+      template.push(
+        { role: 'copy', label: '复制' },
+        { type: 'separator' },
+        { role: 'selectAll', label: '全选' }
+      );
+    }
+    if (template.length) Menu.buildFromTemplate(template).popup({ window: win });
+  });
+}
+
+function hideMainWindow() {
+  if (mainWin && mainWin.isVisible()) mainWin.hide();
+}
+
+function notifyMainWindowShown() {
+  if (!mainWin || mainWin.webContents.isDestroyed()) return;
+  mainWin.webContents.send('et:popup-shown');
+}
+
+function focusMainWindowSoon() {
+  if (!mainWin) return;
+  const focus = (activate = false) => {
+    if (mainWin && mainWin.isVisible()) mainWin.focus();
+    if (!mainWin || !mainWin.isVisible()) return;
+    mainWin.setFocusable(true);
+    if (activate && process.platform === 'darwin') {
+      try { app.focus({ steal: true }); } catch (e) {}
+    }
+    try { mainWin.focus(); } catch (e) {}
+  };
+  focus();
+  setTimeout(focus, 40);
+  setTimeout(() => focus(true), 140);
+}
+
 function createMainWindow() {
   mainWin = new BrowserWindow({
     width: 440, height: 620, minWidth: 440, minHeight: 480,
@@ -79,23 +132,35 @@ function createMainWindow() {
       nodeIntegration: false, contextIsolation: true, sandbox: false
     }
   });
+  attachEditContextMenu(mainWin);
+  mainWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  mainWin.setAlwaysOnTop(true, 'screen-saver');
+  mainWin.once('ready-to-show', () => { mainWinReady = true; });
   mainWin.loadURL(popupURL());
   mainWin.on('close', e => { e.preventDefault(); mainWin.hide(); });
+  mainWin.on('show', () => {
+    setTimeout(notifyMainWindowShown, 30);
+    setTimeout(() => {
+      if (mainWin && mainWin.isVisible() && !mainWin.isFocused()) focusMainWindowSoon();
+    }, 60);
+  });
   // 菜单栏弹窗风格：点击窗口外任意位置立即隐藏
-  mainWin.on('blur', () => mainWin.hide());
+  mainWin.on('blur', () => setTimeout(() => {
+    if (mainWin && !mainWin.isFocused()) hideMainWindow();
+  }, 60));
 }
 
 function createJsonWindow() {
   jsonWin = new BrowserWindow({
     width: 1100, height: 760, minWidth: 800, minHeight: 500,
-    show: false, titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 16, y: 13 },   /* 居中于顶部 40px 标题栏条 (40-14)/2≈13 */
+    show: false, title: '工具大窗口 · EasyTranslate', movable: true,
     vibrancy: 'under-window', visualEffectState: 'active',
     webPreferences: {
       preload: join(__dirname, 'preload.cjs'),
       nodeIntegration: false, contextIsolation: true, sandbox: false
     }
   });
+  attachEditContextMenu(jsonWin);
   jsonWin.loadURL(jsonURL());
   jsonWin.on('close', e => { e.preventDefault(); jsonWin.hide(); });
 }
@@ -278,6 +343,12 @@ async function startCapture() {
   captureWin.setAlwaysOnTop(true, 'screen-saver');
   captureWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   captureWin.loadURL(captureURL());
+  captureWin.webContents.on('before-input-event', (event, input) => {
+    if (input.type === 'keyDown' && (input.key === 'Escape' || input.code === 'Escape')) {
+      event.preventDefault();
+      closeCapture();
+    }
+  });
   captureWin.webContents.once('did-finish-load', () => {
     if (!captureWin) return;
     captureLoaded = true;
@@ -291,11 +362,16 @@ async function startCapture() {
     captureWin.show();
     captureWin.focus();
   });
-  captureWin.on('closed', () => { captureWin = null; });
+  const captureRef = captureWin;
+  captureRef.on('closed', () => {
+    if (captureWin === captureRef) captureWin = null;
+  });
   windowRectsPromise.catch(() => {});
 }
 function closeCapture() {
-  if (captureWin) { try { captureWin.close(); } catch (e) {} captureWin = null; }
+  const captureRef = captureWin;
+  captureWin = null;
+  if (captureRef) { try { captureRef.close(); } catch (e) {} }
 }
 
 /* ===== 钉图：把截好的图固定在屏幕上 ===== */
@@ -320,15 +396,31 @@ function createPinWindow(p) {
 
 function toggleMainWindow() {
   if (!mainWin) return;
-  if (mainWin.isVisible() && mainWin.isFocused()) { mainWin.hide(); return; }
+  lastMainToggleAt = Date.now();
+  if (mainWin.isVisible()) { mainWin.hide(); return; }
   if (tray) {
-    const tb = tray.getBounds(), wb = mainWin.getBounds();
+    const tb = tray.getBounds();
+    const wb = mainWin.getBounds();
+    const display = screen.getDisplayNearestPoint({ x: Math.round(tb.x + tb.width / 2), y: Math.round(tb.y + tb.height / 2) });
+    const area = display.workArea;
+    const targetX = Math.round(tb.x + tb.width / 2 - wb.width / 2);
+    const targetY = Math.round(tb.y + tb.height + 4);
     mainWin.setPosition(
-      Math.round(tb.x + tb.width / 2 - wb.width / 2),
-      Math.round(tb.y + tb.height + 4)
+      Math.min(Math.max(targetX, area.x), area.x + area.width - wb.width),
+      Math.min(Math.max(targetY, area.y), area.y + area.height - wb.height)
     );
   }
-  mainWin.show(); mainWin.focus();
+  mainWin.showInactive();
+  mainWin.moveTop();
+  if (mainWinReady) {
+    notifyMainWindowShown();
+    focusMainWindowSoon();
+  } else {
+    mainWin.once('ready-to-show', () => {
+      notifyMainWindowShown();
+      focusMainWindowSoon();
+    });
+  }
 }
 
 function createTray() {
@@ -494,4 +586,11 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', e => e.preventDefault());
 app.on('will-quit',  () => globalShortcut.unregisterAll());
-app.on('activate',   () => toggleMainWindow());
+app.on('activate',   () => {
+  if (Date.now() - lastMainToggleAt < 300) return;
+  toggleMainWindow();
+});
+app.on('deactivate', () => hideMainWindow());
+app.on('browser-window-focus', (_, win) => {
+  if (mainWin && win !== mainWin) hideMainWindow();
+});

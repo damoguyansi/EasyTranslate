@@ -103,7 +103,7 @@ function buildToolbar() {
     const s = document.createElement('span');
     s.className = 'swatch' + (c === color ? ' active' : '');
     s.style.background = c; s.dataset.color = c;
-    s.addEventListener('mousedown', (e) => {
+    s.addEventListener('click', (e) => {
       e.stopPropagation(); color = c;
       colors.querySelectorAll('.swatch').forEach(x => x.classList.toggle('active', x === s));
     });
@@ -116,14 +116,14 @@ function buildToolbar() {
     const dot = 4 + i * 4;
     d.innerHTML = `<i style="width:${dot}px;height:${dot}px"></i>`;
     d.dataset.size = sz;
-    d.addEventListener('mousedown', (e) => {
+    d.addEventListener('click', (e) => {
       e.stopPropagation(); lineW = sz;
       sizes.querySelectorAll('.size-dot').forEach(x => x.classList.toggle('active', x === d));
     });
     sizes.appendChild(d);
   });
   toolbar.querySelectorAll('.tbtn[data-tool]').forEach((b) => {
-    b.addEventListener('mousedown', (e) => {
+    b.addEventListener('click', (e) => {
       e.stopPropagation();
       tool = (tool === b.dataset.tool) ? null : b.dataset.tool;
       toolbar.querySelectorAll('.tbtn[data-tool]').forEach(x =>
@@ -131,7 +131,7 @@ function buildToolbar() {
     });
   });
   toolbar.querySelectorAll('.tbtn[data-act]').forEach((b) => {
-    b.addEventListener('mousedown', (e) => { e.stopPropagation(); doAction(b.dataset.act); });
+    b.addEventListener('click', (e) => { e.stopPropagation(); doAction(b.dataset.act); });
   });
 }
 
@@ -313,6 +313,15 @@ window.addEventListener('mouseup', (e) => {
   }
 });
 
+window.addEventListener('dblclick', (e) => {
+  if (e.button !== 0 || inToolbar(e)) return;
+  const p = pos(e);
+  if (phase === 'ready' && sel && inSel(p)) {
+    e.preventDefault();
+    doAction('copy');
+  }
+});
+
 function newShape(t, p) {
   if (t === 'rect' || t === 'ellipse') return { type: t, x: p.x, y: p.y, w: 0, h: 0, color, size: lineW };
   if (t === 'arrow') return { type: 'arrow', x1: p.x, y1: p.y, x2: p.x, y2: p.y, color, size: lineW };
@@ -434,7 +443,7 @@ function exportPNG() {
 /* ---------- 键盘 ---------- */
 window.addEventListener('keydown', (e) => {
   if (editingText) return;
-  if (e.key === 'Escape') { api.captureCancel(); }
+  if (e.key === 'Escape') { e.preventDefault(); api.captureCancel(); }
   else if (e.key === 'Enter') { if (sel) doAction('copy'); }
   else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { shapes.pop(); redraw(); }
   else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); if (sel) doAction('save'); }
