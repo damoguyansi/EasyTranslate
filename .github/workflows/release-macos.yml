@@ -35,10 +35,50 @@ jobs:
       - name: Test
         run: npm test
 
+      # 导入固定的代码签名证书：每次发布都用同一身份签名，
+      # macOS 的屏幕录制 / 辅助功能授权在升级后保持有效，无需重新授权
+      - name: Import signing certificate
+        env:
+          P12_BASE64: ${{ secrets.MACOS_CERT_P12 }}
+          P12_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          EXPECTED_SHA1: 796A034A1780D2719D7D711DEF36F7964A8C7368
+        run: |
+          if [ -z "$P12_BASE64" ]; then echo "::error::缺少仓库密钥 MACOS_CERT_P12"; exit 1; fi
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KC_PASS="$(openssl rand -hex 16)"
+          echo "$P12_BASE64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KC_PASS" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KC_PASS" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          rm -f "$RUNNER_TEMP/cert.p12"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KC_PASS" "$KEYCHAIN" > /dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          # 自签名证书需在构建机上信任后才能用于 codesign
+          security find-certificate -c "EasyTranslate Code Signing" -p "$KEYCHAIN" > "$RUNNER_TEMP/cert.pem"
+          sudo security add-trusted-cert -d -r trustRoot -p codeSign -k /Library/Keychains/System.keychain "$RUNNER_TEMP/cert.pem"
+          HASH="$(security find-identity -v -p codesigning "$KEYCHAIN" | awk '/EasyTranslate Code Signing/ {print $2; exit}')"
+          if [ "$HASH" != "$EXPECTED_SHA1" ]; then
+            security find-identity -p codesigning "$KEYCHAIN"
+            echo "::error::签名证书不匹配或不可用（期望 $EXPECTED_SHA1，实际 '$HASH'）"
+            exit 1
+          fi
+          echo "EASYTRANSLATE_CODESIGN_IDENTITY=$HASH" >> "$GITHUB_ENV"
+
       - name: Build universal dmg
         run: npm run dist
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Verify code signature
+        run: |
+          APP="dist/mac-universal/EasyTranslate.app"
+          codesign --verify --deep --strict "$APP"
+          codesign -dvv "$APP" 2>&1 | grep -E "Identifier=|Authority=|Signature=|TeamIdentifier="
+          codesign -d -r- "$APP" 2>&1 | grep designated
+          if codesign -dvv "$APP" 2>&1 | grep -q "Signature=adhoc"; then
+            echo "::error::应用仍是 ad-hoc 签名，升级后将需要重新授权"; exit 1
+          fi
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4

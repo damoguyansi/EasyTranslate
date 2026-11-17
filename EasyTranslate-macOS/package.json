@@ -1,6 +1,6 @@
 {
   "name": "easytranslate-macos",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "EasyTranslate macOS 菜单栏工具箱：翻译 · JSON · 编码 · 密码 · 验证码 · 截图",
   "type": "module",
   "main": "electron/main.js",

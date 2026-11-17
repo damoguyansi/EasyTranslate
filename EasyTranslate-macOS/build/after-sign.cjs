@@ -1,8 +1,10 @@
 // 打包后重新签名：electron-builder 在找不到付费 Developer ID 证书时会
 // 直接跳过签名，导致 App 内部保留 Electron 原始的占位签名（Identifier=Electron）。
 // macOS 的隐私权限（TCC，包括录屏/辅助功能）依赖代码签名身份；如果主程序
-// 或 Helper 仍是 Electron 身份，授权会归属混乱。这里使用 ad-hoc 签名，
-// 并让每个 bundle 的签名 identifier 与它自己的 CFBundleIdentifier 保持一致。
+// 或 Helper 仍是 Electron 身份，授权会归属混乱。
+// 签名身份优先取 EASYTRANSLATE_CODESIGN_IDENTITY（GitHub Actions 中由固定的自签名证书提供，
+// 每次发布身份一致，升级后无需重新授权）；未设置时退回本机证书或 ad-hoc。
+// 每个 bundle 的签名 identifier 与它自己的 CFBundleIdentifier 保持一致。
 const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
