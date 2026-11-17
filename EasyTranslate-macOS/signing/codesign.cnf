@@ -1,0 +1,14 @@
+[ req ]
+distinguished_name = dn
+prompt = no
+x509_extensions = ext
+
+[ dn ]
+CN = EasyTranslate Code Signing
+O = EasyTranslate
+
+[ ext ]
+basicConstraints = critical, CA:false
+keyUsage = critical, digitalSignature
+extendedKeyUsage = critical, codeSigning
+subjectKeyIdentifier = hash
