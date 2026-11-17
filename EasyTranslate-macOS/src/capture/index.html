@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; script-src 'self'" />
+  <title>截图</title>
+  <link rel="stylesheet" href="./capture.css" />
+</head>
+<body>
+  <canvas id="stage"></canvas>
+  <div id="size" class="size"></div>
+  <div id="loupe" class="loupe">
+    <canvas id="loupeCanvas" width="132" height="96"></canvas>
+    <div class="loupe-info"><span id="loupePos"></span><span id="loupeColor"></span></div>
+  </div>
+
+  <div id="toolbar" class="toolbar">
+    <div class="group" id="tools">
+      <button data-tool="rect" data-icon="rect" title="矩形 (1)"></button>
+      <button data-tool="ellipse" data-icon="ellipse" title="椭圆 (2)"></button>
+      <button data-tool="arrow" data-icon="arrow" title="箭头 (3)"></button>
+      <button data-tool="pen" data-icon="pen" title="画笔 (4)"></button>
+      <button data-tool="mosaic" data-icon="mosaic" title="马赛克 (5)"></button>
+      <button data-tool="text" data-icon="text" title="文字 (6)"></button>
+      <button data-tool="number" data-icon="number" title="序号 (7)"></button>
+    </div>
+    <span class="sep"></span>
+    <div class="group">
+      <button data-act="undo" data-icon="undo" title="撤销 ⌘Z"></button>
+      <button data-act="qr" data-icon="qr" title="识别二维码"></button>
+      <button data-act="pin" data-icon="pin" title="钉在屏幕上"></button>
+      <button data-act="save" data-icon="save" title="保存 ⌘S"></button>
+    </div>
+    <span class="sep"></span>
+    <div class="group">
+      <button data-act="cancel" data-icon="x" class="danger" title="取消 Esc"></button>
+      <button data-act="copy" data-icon="check" class="ok" title="复制到剪贴板 ↩"></button>
+    </div>
+  </div>
+  <div id="props" class="props">
+    <div class="sizes" id="sizes"></div>
+    <span class="sep"></span>
+    <div class="colors" id="colors"></div>
+  </div>
+
+  <textarea id="textInput" class="text-input" spellcheck="false"></textarea>
+  <div id="hint" class="hint"></div>
+  <div id="flash" class="flash"></div>
+
+  <script type="module" src="./capture.js"></script>
+</body>
+</html>

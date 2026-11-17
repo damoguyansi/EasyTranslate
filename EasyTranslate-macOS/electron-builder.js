@@ -1,17 +1,18 @@
-// electron-builder.js
+// electron-builder 打包配置（universal dmg）
 export default {
   appId: 'com.damoguyansi.easytranslate',
   productName: 'EasyTranslate',
-  directories: { output: 'dist' },
+  directories: { output: 'dist', buildResources: 'resources' },
   files: [
     'electron/**/*',
     'dist/renderer/**/*',
-    'resources/icon.icns',
     'resources/tray.png',
     'resources/tray@2x.png',
-    'resources/entitlements.mac.plist',
     'package.json'
   ],
+  asar: true,
+  compression: 'normal',
+  electronLanguages: ['zh_CN', 'en'],
   mac: {
     category: 'public.app-category.utilities',
     icon: 'resources/icon.icns',
@@ -20,9 +21,14 @@ export default {
     entitlementsInherit: 'resources/entitlements.mac.plist',
     hardenedRuntime: true,
     gatekeeperAssess: false,
-    identity: null
+    identity: null,
+    extendInfo: {
+      LSUIElement: true,
+      NSAppleEventsUsageDescription: 'EasyTranslate 需要发送 ⌘C 以读取你选中的文字进行划词翻译。',
+      NSScreenCaptureUsageDescription: 'EasyTranslate 需要屏幕录制权限来截图。'
+    }
   },
-  afterSign: 'scripts/after-sign.cjs',
+  afterSign: 'build/after-sign.cjs',
   dmg: {
     title: 'EasyTranslate ${version}',
     contents: [

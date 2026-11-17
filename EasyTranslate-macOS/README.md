@@ -10,148 +10,106 @@
 
 ## 中文
 
-> 翻译 · 密码 · Base64 · JSON · 划词翻译 · 截图标注，常驻 macOS 菜单栏
+> 翻译 · JSON · 编码 · 密码 · 验证码 · 截图标注，常驻 macOS 菜单栏，一个快捷键随叫随到。
 
-EasyTranslate 的桌面端，由 [EasyTranslate-chrome](../EasyTranslate-chrome) 浏览器扩展移植而来，使用 Electron 构建为常驻菜单栏的轻量小工具，额外提供全局快捷键、划词翻译、微信式截图标注、窗口置顶等浏览器扩展无法实现的系统级能力。
+v3 是一次完全重写：主进程模块化，窗口预热，界面改为原生风格并跟随系统深色模式，功能也做了补全。
 
 ### 功能
 
 | 功能 | 说明 |
 | --- | --- |
-| 🌐 翻译 | 自动检测中/英文，输入即时翻译；保留最近 30 条历史记录 |
-| 🔐 密码生成器 | 加密安全随机数生成，可选数字/大小写/符号、长度 8–64、排除字符，实时强度评估 |
-| 🔁 Base64 | 支持 Unicode 的编码 / 解码，格式校验 |
-| `{ }` JSON | 格式化 / 压缩 / 校验、转义/去转义、中文⇄`\u`，可在独立窗口中编辑并支持窗口置顶 |
-| ✂️ 截图标注 | 全屏截图，自动识别并高亮屏幕上的窗口，单击即选中该窗口；支持矩形/椭圆/箭头/画笔/马赛克/文字标注，可保存、复制或钉在屏幕上 |
-| ⌨️ 全局快捷键 | 随时随地唤出主窗口、划词翻译、截图，无需先切换到本应用 |
+| 翻译 | 输入即翻译（支持 9 种语言，自动识别）、朗读、⌘↩ 复制译文、历史记录；**划词翻译** ⌘⇧Y 可在任意应用中使用 |
+| JSON | 弹窗内快速格式化 / 压缩 / 转义，⌘↩ 格式化，可定位错误行列；支持多层转义 JSON 自动解包 |
+| JSON 工作台 | CodeMirror 编辑器 + 按需渲染的树形视图（大文件也流畅），键名排序、搜索定位、路径复制、打开 / 拖入 / 保存文件、窗口置顶 |
+| 编码 | Base64（含 URL 安全）/ URL / Unicode / HTML 实体实时互转，时间戳转换，SHA-1/256/512 哈希 |
+| 密码 | 加密安全随机数（无偏差），保证每类字符至少出现一次，可排除易混淆字符，熵值强度显示，候选列表，选项自动记忆 |
+| 验证码（TOTP） | 粘贴二维码图片 / 框选屏幕扫码 / 手动输入密钥；**支持 Google Authenticator 导出的批量迁移二维码**；搜索、拖拽排序、备注、改名；数据由系统钥匙串加密保存 |
+| 截图 | 秒开（覆盖层预热 + 原生 `screencapture`），悬停自动识别窗口，矩形 / 椭圆 / 箭头 / 画笔 / 马赛克 / 文字 / 序号标注，放大镜取色（⌘C 复制色值），识别二维码，复制 / 保存 / 钉在屏幕上 |
+| 钉图 | 拖动移动、滚轮缩放、右键复制 / 保存、双击或 Esc 关闭 |
+| 设置 | 自定义全局快捷键（冲突检测）、开机自启、外观、中文默认译入语言、自动复制译文、权限状态一览 |
 
-### 使用教程
+### 快捷键
 
-**打开主窗口**
-- 点击菜单栏图标，或按下全局快捷键 **⌘⇧T**，弹出 4 个 Tab（翻译 / 密码 / Base64 / JSON）的小窗口；点击窗口外部自动隐藏。
+| 全局 | |
+| --- | --- |
+| ⌘⇧T | 显示 / 隐藏主窗口（出现在鼠标所在屏幕） |
+| ⌘⇧Y | 划词翻译 |
+| ⌘⇧Z | 截图 |
 
-**翻译**
-1. 主窗口默认停留在「翻译」Tab，粘贴或输入文字即自动检测语言并翻译。
-2. 在任意应用中选中一段文字后按 **⌘⇧Y**：应用会模拟复制选中内容、弹出主窗口并自动填入翻译结果（需要「系统设置 › 隐私与安全性 › 辅助功能」授权 EasyTranslate 才能读取选中文本）。
+| 主窗口 | | 截图 | |
+| --- | --- | --- | --- |
+| ⌘1 – ⌘5 | 切换功能 | 1 – 7 | 切换标注工具 |
+| ⌘, | 设置 | ↩ / 双击选区 | 复制并退出 |
+| ⌘↩ | 复制译文 / 格式化 JSON | ⌘S | 保存 |
+| Esc | 隐藏窗口 | ⌘Z | 撤销 |
+| | | 方向键 | 微调选区（⇧ 10px，⌘ 调整大小） |
+| | | 右键 | 重新选择 / 退出 |
 
-**密码生成器 / Base64**：与浏览器插件版交互一致，详见 [EasyTranslate-chrome 的使用教程](../EasyTranslate-chrome/README.md#使用教程)。
+全局快捷键均可在「设置」中修改。主窗口右上角 📌 可固定窗口，失焦时不再自动隐藏。
 
-**JSON 工具**
-1. 切换到「JSON」Tab，可直接在小窗口内格式化/压缩/校验；点击「在新窗口打开」可进入更大的独立窗口，左右双栏编辑+树形视图。
-2. 独立窗口标题栏（红绿灯按钮同一行）右侧有一个📌图标，点击可将该窗口设为**始终置顶**，方便边查资料边参考 JSON 结构。
+### 权限
 
-**截图标注**（微信式自动选窗）
-1. 按下全局快捷键 **⌘⇧Z**，或点击主窗口顶部的剪刀图标，进入全屏截图模式。
-2. 移动鼠标（不点击、不拖动）时，鼠标所在的窗口会自动整窗高亮——和微信截图的窗口识别效果一致；单击即可按该窗口边界自动截取。
-3. 也可按住鼠标拖拽，手动框选任意矩形区域，拖拽会覆盖自动识别。
-4. 选区确定后，使用下方工具栏进行矩形 / 椭圆 / 箭头 / 画笔 / 马赛克 / 文字标注，支持撤销（⌘Z）。
-5. 完成后可：✓ 完成并复制到剪贴板（回车）、⬇ 保存为文件、📌 钉在屏幕上（生成一个常驻置顶的小图片窗口，双击或 Esc 关闭）、✕ 取消（Esc）。
-6. 首次使用需要在「系统设置 › 隐私与安全性」中依次授权**屏幕录制**（截图本身）与**辅助功能**（识别窗口位置），授权后需重启应用生效。
+- **屏幕录制**：截图需要。首次截图时系统会提示，授权后重新打开应用。
+- **辅助功能**：划词翻译需要（用于发送 ⌘C 读取选中文字）。
 
-### 下载安装
+设置页会显示两项权限的当前状态，并提供一键跳转。
 
-从 [GitHub Releases](https://github.com/damoguyansi/EasyTranslate/releases) 下载 `EasyTranslate-x.x.x-universal.dmg`，双击打开后将 EasyTranslate 拖入「应用程序」文件夹。由于未使用付费 Apple 开发者证书签名，首次启动需**右键点击 App → 打开**（或在「系统设置 › 隐私与安全性」中点击「仍要打开」）以跳过 Gatekeeper 拦截。
-
-### 开发与打包
+### 开发
 
 ```bash
 npm install
-npm run dev     # 开发模式（vite + electron 热重载）
-npm test        # 运行测试（38 项）
-npm run dist    # 打包出 dmg 安装包（universal，输出在 dist/）
+npm run dev     # Vite + Electron（自动注入开发地址）
+npm test        # node:test 单元 / 结构测试
+npm run build   # 构建渲染进程
+npm run dist    # 打包 universal dmg（需在 macOS 上执行）
 ```
+
+> npm 11 默认不执行依赖的安装脚本，若 `npm run dev` 提示找不到 Electron，可执行 `node node_modules/electron/install.js` 下载 Electron 运行时。
 
 ### 项目结构
 
 ```
 electron/
-  main.js         主进程：窗口管理、全局快捷键、截图/IPC
-  preload.cjs     contextBridge 安全桥接
-  store.js        基于 electron-store 的本地存储
+  main.js        入口：托盘、应用菜单、IPC、启动流程
+  windows.js     菜单栏弹窗（常驻预热）与工作台窗口
+  capture.js     截图：screencapture 抓屏、窗口识别、覆盖层、钉图
+  selection.js   划词读取（异步，保留并恢复剪贴板）
+  shortcuts.js   全局快捷键注册 / 冲突检测
+  translator.js  翻译服务（主进程 net.fetch，走系统代理，LRU 缓存）
+  clipboard.js   剪贴板封装
+  store.js       JSON 存储（防抖原子写入，自动导入 v2 数据）
+  vault.js       验证码账号加密存储（safeStorage）
+  preload.cjs    sandbox 预加载，IPC 白名单
 src/
-  popup/          菜单栏弹窗页面
-  json-page/      JSON 独立窗口
-  capture/        截图标注引擎（canvas）+ 置顶小窗
-  styles/         设计系统（与 chrome 版共用设计令牌）
-resources/        应用图标、菜单栏模板图标、entitlements
-electron-builder.js          打包配置（dmg / icon / 签名）
+  core/          纯函数：语言、JSON、编码、密码、TOTP（Node 测试直接覆盖）
+  ui/            设计系统、图标、通用组件、二维码识别
+  popup/         菜单栏弹窗（翻译 / JSON / 编码 / 密码 / 验证码 / 设置）
+  workspace/     工作台（CodeMirror 编辑器 + 树视图 + 编码）
+  capture/       截图标注覆盖层
+  pin/           钉图窗口
+scripts/         dev 启动脚本与测试
+build/           打包后签名脚本
+resources/       图标、托盘图标、entitlements
 ```
 
 ### 技术栈
 
-Electron 32 · Vite 5（多入口构建）· electron-builder（universal dmg）· 原生 Canvas 标注引擎 · AppleScript（窗口识别 / 划词）。
+Electron 45 · Vite 8 · CodeMirror 6 · jsQR · 原生 Canvas 标注 · macOS `screencapture` / CGWindowList（JXA）。
 
 ---
 
 ## English
 
-> Translate · Password · Base64 · JSON · selection-translate · screenshot annotation, living in your macOS menu bar
+> Translate · JSON · Encoders · Passwords · 2FA codes · Screenshot annotation — in your macOS menu bar.
 
-The desktop counterpart of [EasyTranslate-chrome](../EasyTranslate-chrome), ported to Electron as a lightweight menu-bar utility. On top of the shared toolset it adds OS-level capabilities a browser extension simply can't offer: global keyboard shortcuts, selection-translate from any app, WeChat-style screenshot annotation, and always-on-top windows.
+v3 is a ground-up rewrite with a modular main process, pre-warmed windows, a native-looking UI that follows system dark mode, and a more complete feature set:
 
-### Features
+- **Translate**: translate-as-you-type across 9 languages with auto-detect, text-to-speech, history, and **selection translate** (⌘⇧Y) from any app.
+- **JSON**: quick format / minify / escape in the popup, plus a workspace window with a CodeMirror editor, a lazily rendered tree view, key sorting, search, path copy, and file open/save.
+- **Encoders**: live Base64 (incl. URL-safe), URL, Unicode, and HTML entities, along with timestamp conversion and SHA hashes.
+- **Passwords**: unbiased crypto RNG with guaranteed character classes, an entropy-based strength meter, and remembered options.
+- **2FA (TOTP)**: add by pasting a QR image, scanning the screen, or entering a secret manually, and **import Google Authenticator migration QR codes**. Accounts are encrypted with the system keychain.
+- **Screenshot**: opens instantly via a pre-warmed overlay and native `screencapture`, auto-detects windows, and supports 7 annotation tools, a color picker, QR decoding, and copy / save / pin-to-screen.
+- **Settings**: customizable global shortcuts with conflict detection, launch at login, appearance, and permission status.
 
-| Feature | Description |
-| --- | --- |
-| 🌐 Translate | Auto-detects Chinese/English and translates as you type; keeps the last 30 translations |
-| 🔐 Password generator | Cryptographically secure random passwords, toggle digits/upper-lower case/symbols, length 8–64, character exclusion, live strength meter |
-| 🔁 Base64 | Unicode-safe encode/decode with format validation |
-| `{ }` JSON | Format / minify / validate, escape/unescape, CJK ⇄ `\u`, editable in a standalone always-on-top window |
-| ✂️ Screenshot annotation | Full-screen capture that auto-detects and highlights on-screen windows — click to select one instantly; annotate with rectangle/ellipse/arrow/pen/mosaic/text, then save, copy, or pin to screen |
-| ⌨️ Global shortcuts | Summon the main window, selection-translate, or screenshot from anywhere, without switching focus to the app first |
-
-### Usage guide
-
-**Opening the main window**
-- Click the menu-bar icon, or press the global shortcut **⌘⇧T**, to pop up the 4-tab window (Translate / Password / Base64 / JSON). Clicking outside the window hides it automatically.
-
-**Translate**
-1. The main window opens on the "Translate" tab by default — paste or type text and it's detected and translated automatically.
-2. Select text in any app and press **⌘⇧Y**: the app simulates a copy of the selection, pops up the main window, and auto-fills the translation (requires granting EasyTranslate Accessibility permission under System Settings › Privacy & Security to read the selected text).
-
-**Password generator / Base64**: interactions match the browser-extension version — see the [EasyTranslate-chrome usage guide](../EasyTranslate-chrome/README.md#usage-guide).
-
-**JSON tool**
-1. Switch to the "JSON" tab to format/minify/validate right inside the small window, or click "Open in new window" for a bigger standalone window with a two-pane editor + tree view.
-2. The standalone window has a 📌 pin icon on the same row as the traffic-light buttons (top right) — click it to make that window **always on top**, handy for referencing a JSON structure while working in another app.
-
-**Screenshot annotation** (WeChat-style auto window detection)
-1. Press the global shortcut **⌘⇧Z**, or click the scissors icon at the top of the main window, to enter full-screen capture mode.
-2. Move the mouse without clicking or dragging — the window currently under the cursor is highlighted automatically, just like WeChat's screenshot tool. Click once to capture exactly that window's bounds.
-3. Alternatively, click and drag to manually select any rectangular region — dragging overrides the auto-detected window.
-4. Once a selection is set, use the toolbar to annotate with rectangle / ellipse / arrow / pen / mosaic / text tools, with undo support (⌘Z).
-5. When done: ✓ finish and copy to clipboard (Enter), ⬇ save to a file, 📌 pin to screen (spawns a small always-on-top image window, double-click or Esc to close it), or ✕ cancel (Esc).
-6. On first use, grant **Screen Recording** (for the capture itself) and **Accessibility** (for window detection) under System Settings › Privacy & Security, then restart the app for the permissions to take effect.
-
-### Download & install
-
-Download `EasyTranslate-x.x.x-universal.dmg` from [GitHub Releases](https://github.com/damoguyansi/EasyTranslate/releases), open it, and drag EasyTranslate into your Applications folder. Since the build isn't signed with a paid Apple Developer certificate, the first launch requires **right-click the app → Open** (or "Open Anyway" under System Settings › Privacy & Security) to bypass Gatekeeper.
-
-### Development & packaging
-
-```bash
-npm install
-npm run dev     # dev mode (vite + electron hot reload)
-npm test        # run tests (38 checks)
-npm run dist    # build the universal .dmg installer (output in dist/)
-```
-
-### Project structure
-
-```
-electron/
-  main.js         Main process: window management, global shortcuts, capture/IPC
-  preload.cjs     contextBridge security bridge
-  store.js        Local storage backed by electron-store
-src/
-  popup/          Menu-bar popup page
-  json-page/      Standalone JSON window
-  capture/        Canvas-based screenshot annotation engine + pin window
-  styles/         Design system (shared tokens with the chrome version)
-resources/        App icon, menu-bar template icon, entitlements
-electron-builder.js          Packaging config (dmg / icon / signing)
-```
-
-### Tech stack
-
-Electron 32 · Vite 5 (multi-entry build) · electron-builder (universal dmg) · custom Canvas annotation engine · AppleScript (window detection / selection-translate).
+Run `npm install`, then `npm run dev` / `npm test` / `npm run dist` (packaging requires macOS).

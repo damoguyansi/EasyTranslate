@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; script-src 'self'" />
+  <title>EasyTranslate 工作台</title>
+  <link rel="stylesheet" href="../ui/base.css" />
+  <link rel="stylesheet" href="./workspace.css" />
+</head>
+<body>
+  <header class="titlebar">
+    <div class="seg" id="toolSeg">
+      <button data-tool="json" class="on">JSON</button>
+      <button data-tool="codec">编码转换</button>
+    </div>
+    <div class="title-actions">
+      <button class="icon-btn" id="pinBtn" data-icon="pin" title="窗口置顶"></button>
+    </div>
+  </header>
+
+  <!-- ============ JSON ============ -->
+  <section class="tool on" id="tool-json">
+    <div class="toolbar">
+      <button class="btn primary" id="fmt" title="格式化 ⇧⌘F">格式化</button>
+      <button class="btn" id="min" title="压缩 ⇧⌘M">压缩</button>
+      <button class="btn" id="sort" data-icon="sort" title="按键名排序">排序</button>
+      <span class="divider"></span>
+      <button class="btn" id="esc">转义</button>
+      <button class="btn" id="unesc">去转义</button>
+      <button class="btn" id="toU">中文→\u</button>
+      <button class="btn" id="fromU">\u→中文</button>
+      <span class="divider"></span>
+      <select id="indent" class="field compact" title="缩进">
+        <option value="2">2 空格</option>
+        <option value="4">4 空格</option>
+        <option value="tab">Tab</option>
+      </select>
+      <span class="grow"></span>
+      <button class="icon-btn" id="openFile" data-icon="file" title="打开文件 ⌘O"></button>
+      <button class="icon-btn" id="download" data-icon="download" title="保存为文件 ⌘S"></button>
+      <button class="icon-btn" id="copyAll" data-icon="copy" title="复制全部"></button>
+      <button class="icon-btn" id="sample" data-icon="sparkles" title="示例"></button>
+      <button class="icon-btn" id="clear" data-icon="trash" title="清空"></button>
+      <input type="file" id="fileInput" accept=".json,.txt,application/json" hidden />
+    </div>
+
+    <div class="panes" id="panes">
+      <section class="pane" id="editorPane">
+        <div id="editor" class="editor"></div>
+      </section>
+      <div class="splitter" id="splitter" title="拖动调整宽度"></div>
+      <section class="pane tree-pane">
+        <div class="pane-head">
+          <div class="search">
+            <span data-icon="search"></span>
+            <input id="treeSearch" class="field" placeholder="搜索键或值" />
+          </div>
+          <span class="muted small" id="treeCount"></span>
+          <button class="icon-btn sm" id="treePrev" title="上一个">↑</button>
+          <button class="icon-btn sm" id="treeNext" title="下一个">↓</button>
+          <span class="divider"></span>
+          <div class="seg" id="levelSeg">
+            <button data-level="1">1</button><button data-level="2">2</button><button data-level="3">3</button><button data-level="99">全部</button>
+          </div>
+        </div>
+        <div class="tree mono" id="tree" tabindex="0"></div>
+      </section>
+    </div>
+
+    <footer class="statusbar">
+      <span class="state" id="state"></span>
+      <span class="path mono" id="path" title="点击复制路径"></span>
+      <span class="grow"></span>
+      <span class="muted" id="cursor"></span>
+      <span class="muted" id="stats"></span>
+    </footer>
+  </section>
+
+  <!-- ============ 编码 ============ -->
+  <section class="tool" id="tool-codec">
+    <div class="toolbar">
+      <div class="seg" id="cMode">
+        <button data-mode="base64" class="on">Base64</button>
+        <button data-mode="url">URL</button>
+        <button data-mode="unicode">Unicode</button>
+        <button data-mode="html">HTML 实体</button>
+      </div>
+      <span class="divider"></span>
+      <div class="seg" id="cDir">
+        <button data-dir="encode" class="on">编码 →</button>
+        <button data-dir="decode">← 解码</button>
+      </div>
+      <label class="inline-check" id="cSafeWrap"><input type="checkbox" id="cSafe" /> URL 安全</label>
+      <span class="grow"></span>
+      <button class="btn" id="cSwap" data-icon="swap">互换</button>
+    </div>
+    <div class="panes two">
+      <section class="pane"><div class="pane-head"><span>输入</span><span class="muted small" id="cInStat"></span></div>
+        <textarea id="cIn" class="plain mono selectable" spellcheck="false" placeholder="输入内容，实时转换"></textarea></section>
+      <section class="pane"><div class="pane-head"><span>结果</span><span class="grow"></span><button class="btn sm" id="cCopy" data-icon="copy">复制</button></div>
+        <textarea id="cOut" class="plain mono selectable" spellcheck="false" readonly placeholder="结果"></textarea></section>
+    </div>
+  </section>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

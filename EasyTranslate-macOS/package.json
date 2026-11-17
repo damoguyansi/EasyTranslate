@@ -1,31 +1,31 @@
 {
   "name": "easytranslate-macos",
-  "version": "2.0.2",
-  "description": "EasyTranslate macOS 菜单栏工具箱：翻译 · 密码 · Base64 · JSON",
+  "version": "3.0.0",
+  "description": "EasyTranslate macOS 菜单栏工具箱：翻译 · JSON · 编码 · 密码 · 验证码 · 截图",
   "type": "module",
   "main": "electron/main.js",
+  "private": true,
   "scripts": {
-    "dev": "concurrently \"vite\" \"wait-on tcp:5173 && VITE_DEV_URL=http://localhost:5173 electron .\"",
+    "dev": "node scripts/dev.mjs",
     "build": "vite build",
     "tray": "node resources/make-tray.mjs",
     "dist": "npm run build && electron-builder --mac --universal",
-    "test": "node --test scripts/test-scaffold.mjs scripts/test-migration.mjs scripts/test-main.mjs scripts/test-preload.mjs scripts/test-popup.mjs scripts/test-json-page.mjs scripts/test-json-utils.mjs scripts/test-authenticator.mjs scripts/test-resources.mjs scripts/test-build.mjs"
-  },
-  "devDependencies": {
-    "concurrently": "^9.1.2",
-    "electron": "^32.3.3",
-    "electron-builder": "^25.1.8",
-    "vite": "^5.4.19",
-    "wait-on": "^8.0.3"
+    "test": "node --test \"scripts/test-*.mjs\""
   },
   "dependencies": {
     "@codemirror/commands": "^6.10.4",
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/language": "^6.12.4",
+    "@codemirror/lint": "^6.8.5",
     "@codemirror/search": "^6.7.1",
     "@codemirror/state": "^6.7.1",
     "@codemirror/view": "^6.43.6",
-    "electron-store": "^10.0.0",
+    "@lezer/highlight": "^1.2.5",
     "jsqr": "^1.4.0"
+  },
+  "devDependencies": {
+    "electron": "^45.3.3",
+    "electron-builder": "^26.0.12",
+    "vite": "^8.0.0"
   }
 }

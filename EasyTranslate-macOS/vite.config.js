@@ -1,27 +1,22 @@
-// vite.config.js
+// 渲染进程多页面构建
 import { defineConfig } from 'vite';
-import { resolve } from 'path';
-import { fileURLToPath } from 'url';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
+const root = fileURLToPath(new URL('./src', import.meta.url));
+const pages = ['popup', 'workspace', 'capture', 'pin'];
 
 export default defineConfig({
-  root: 'src',
+  root,
   base: './',
   build: {
-    outDir: resolve(__dirname, 'dist/renderer'),
+    outDir: resolve(root, '../dist/renderer'),
     emptyOutDir: true,
+    target: 'chrome130',
+    modulePreload: false,
     rollupOptions: {
-      input: {
-        popup:   resolve(__dirname, 'src/popup/popup.html'),
-        json:    resolve(__dirname, 'src/json-page/json.html'),
-        capture: resolve(__dirname, 'src/capture/capture.html'),
-        pin:     resolve(__dirname, 'src/capture/pin.html')
-      }
+      input: Object.fromEntries(pages.map((p) => [p, resolve(root, p, 'index.html')]))
     }
   },
-  server: {
-    port: 5173,
-    strictPort: true   // 5173 사용 중이면 에러로 알림, 자동 변경 금지
-  }
+  server: { port: 5173, strictPort: true }
 });

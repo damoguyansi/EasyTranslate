@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src https://dict.youdao.com; script-src 'self'" />
+  <title>EasyTranslate</title>
+  <link rel="stylesheet" href="../ui/base.css" />
+  <link rel="stylesheet" href="./popup.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <nav class="tabs" id="tabs">
+        <span class="tab-ind" id="tabInd"></span>
+        <button data-tab="translate" data-icon="translate" title="翻译 ⌘1"><span>翻译</span></button>
+        <button data-tab="password" data-icon="key" title="密码 ⌘2"><span>密码</span></button>
+        <button data-tab="auth" data-icon="shield" title="Auth 验证码 ⌘3"><span>Auth</span></button>
+        <button data-tab="json" data-icon="braces" title="JSON ⌘4"><span>JSON</span></button>
+        <button data-tab="codec" data-icon="code" title="编码 ⌘5"><span>编码</span></button>
+      </nav>
+      <div class="top-actions">
+        <button class="icon-btn" id="captureBtn" data-icon="scissors" title="截图"></button>
+        <button class="icon-btn" id="pinBtn" data-icon="pin" title="固定窗口（失焦不隐藏）"></button>
+        <button class="icon-btn" id="settingsBtn" data-icon="settings" title="设置 ⌘,"></button>
+      </div>
+    </header>
+
+    <main class="views">
+      <!-- ============ 翻译 ============ -->
+      <section class="view" id="view-translate">
+        <div class="lang-bar">
+          <div class="lang-pill">
+            <select id="srcLang" class="lang-select" title="源语言"></select>
+            <button class="swap" id="swapLang" data-icon="swap" title="互换语言"></button>
+            <select id="dstLang" class="lang-select" title="目标语言"></select>
+          </div>
+          <span class="detected" id="detected"></span>
+        </div>
+        <div class="io card">
+          <textarea id="srcText" class="io-text selectable" placeholder="输入或粘贴文字，自动翻译" spellcheck="false"></textarea>
+          <div class="io-foot">
+            <span class="muted" id="srcCount"></span>
+            <span class="grow"></span>
+            <button class="icon-btn sm" id="speakSrc" data-icon="speaker" title="朗读原文"></button>
+            <button class="icon-btn sm" id="clearSrc" data-icon="x" title="清空"></button>
+          </div>
+        </div>
+        <div class="io card result" id="resultCard">
+          <div id="dstText" class="io-text result-text selectable" data-placeholder="译文"></div>
+          <div class="io-foot">
+            <span class="muted" id="resultState"></span>
+            <span class="grow"></span>
+            <button class="icon-btn sm" id="speakDst" data-icon="speaker" title="朗读译文"></button>
+            <button class="btn sm" id="copyDst" data-icon="copy" title="复制译文 ⌘↩">复制</button>
+          </div>
+        </div>
+        <div class="dict card" id="dictCard" hidden></div>
+        <div class="history">
+          <div class="section-head">
+            <span data-icon="clock">最近翻译</span>
+            <button class="btn ghost sm" id="clearHistory">清空</button>
+          </div>
+          <div class="history-list" id="historyList"></div>
+        </div>
+      </section>
+
+      <!-- ============ JSON ============ -->
+      <section class="view" id="view-json">
+        <div class="toolbar">
+          <button class="btn primary" id="jsonFormat" title="格式化 ⌘↩">格式化</button>
+          <button class="btn" id="jsonMinify">压缩</button>
+          <button class="btn" id="jsonEscape">转义</button>
+          <button class="btn" id="jsonUnescape">去转义</button>
+          <span class="grow"></span>
+          <button class="icon-btn" id="jsonCopy" data-icon="copy" title="复制"></button>
+          <button class="icon-btn" id="jsonClear" data-icon="trash" title="清空"></button>
+          <button class="icon-btn" id="jsonOpen" data-icon="external" title="在工作台中打开（树形视图）"></button>
+        </div>
+        <div class="card editor-card">
+          <textarea id="jsonText" class="code-area mono selectable" spellcheck="false" placeholder="粘贴 JSON，⌘↩ 格式化"></textarea>
+        </div>
+        <div class="status-line">
+          <span id="jsonState" class="state"></span>
+          <span class="grow"></span>
+          <span class="muted" id="jsonStats"></span>
+        </div>
+      </section>
+
+      <!-- ============ 编码 ============ -->
+      <section class="view" id="view-codec">
+        <div class="codec-head">
+          <div class="seg" id="codecMode">
+            <button data-mode="base64" class="on">Base64</button>
+            <button data-mode="url">URL</button>
+            <button data-mode="unicode">Unicode</button>
+            <button data-mode="html">HTML</button>
+            <button data-mode="time">时间戳</button>
+            <button data-mode="hash">哈希</button>
+          </div>
+        </div>
+        <div class="codec-dir" id="codecDirWrap">
+          <div class="seg" id="codecDir">
+            <button data-dir="encode" class="on">编码</button>
+            <button data-dir="decode">解码</button>
+          </div>
+          <label class="inline-check" id="urlSafeWrap"><input type="checkbox" id="urlSafe" /> URL 安全</label>
+          <span class="grow"></span>
+          <button class="btn ghost sm" id="codecSwap" data-icon="swap" title="结果作为输入">互换</button>
+        </div>
+        <div class="card io">
+          <textarea id="codecIn" class="io-text mono selectable" spellcheck="false" placeholder="输入内容，实时转换"></textarea>
+        </div>
+        <div class="card io result" id="codecOutCard">
+          <div id="codecOut" class="io-text mono result-text selectable" data-placeholder="结果"></div>
+          <div class="io-foot">
+            <span class="muted" id="codecState"></span>
+            <span class="grow"></span>
+            <button class="btn sm" id="codecCopy" data-icon="copy">复制</button>
+          </div>
+        </div>
+        <div class="kv-list hidden" id="codecKv"></div>
+      </section>
+
+      <!-- ============ 密码 ============ -->
+      <section class="view" id="view-password">
+        <div class="card pw-display">
+          <input id="pwValue" class="mono selectable" type="text" readonly spellcheck="false" />
+          <div class="pw-display-actions">
+            <button class="icon-btn" id="pwRegen" data-icon="refresh" title="重新生成 (R)"></button>
+            <button class="icon-btn" id="pwCopy" data-icon="copy" title="复制 ⌘C"></button>
+          </div>
+        </div>
+        <div class="pw-strength">
+          <div class="strength-bar"><div class="strength-fill" id="pwFill"></div></div>
+          <span id="pwStrength" class="muted">密码强度：—</span>
+        </div>
+        <div class="card form-card">
+          <div class="form-row">
+            <span>长度</span>
+            <input type="range" id="pwLength" min="4" max="64" value="16" class="range" />
+            <input type="number" id="pwLengthNum" min="4" max="64" value="16" class="field num mono" />
+          </div>
+          <div class="form-row chips" id="pwChips">
+            <button class="chip" data-opt="uppercase">A-Z</button>
+            <button class="chip" data-opt="lowercase">a-z</button>
+            <button class="chip" data-opt="numbers">0-9</button>
+            <button class="chip" data-opt="symbols">!@#$</button>
+            <button class="chip" data-opt="excludeSimilar" title="排除 i l 1 L o 0 O">无易混淆</button>
+          </div>
+          <div class="form-row">
+            <span>排除</span>
+            <input type="text" id="pwExclude" class="field mono" placeholder="不希望出现的字符" />
+          </div>
+        </div>
+        <div class="section-head"><span data-icon="sparkles">更多候选</span><span class="muted small">点击复制</span></div>
+        <div class="pw-more mono" id="pwMore"></div>
+      </section>
+
+      <!-- ============ 验证码 ============ -->
+      <section class="view" id="view-auth">
+        <div class="auth-bar">
+          <div class="search">
+            <span data-icon="search"></span>
+            <input id="authSearch" class="field" placeholder="搜索账号" />
+          </div>
+          <button class="btn" id="authPaste" data-icon="clipboard" title="从剪贴板粘贴二维码图片或链接 (⌘V)">粘贴</button>
+          <button class="btn" id="authScan" data-icon="qr" title="框选屏幕上的二维码">扫码</button>
+          <button class="icon-btn" id="authAdd" data-icon="plus" title="手动添加"></button>
+        </div>
+        <div class="auth-list" id="authList"></div>
+      </section>
+
+      <!-- ============ 设置 ============ -->
+      <section class="view" id="view-settings">
+        <div class="settings">
+          <div class="group-title">通用</div>
+          <div class="card group">
+            <label class="row"><span class="label"><i class="tile" style="--c:#34c759" data-icon="power"></i>开机自动启动</span><span class="switch"><input type="checkbox" id="setLogin" /><span></span></span></label>
+            <div class="row"><span class="label"><i class="tile" style="--c:#5e5ce6" data-icon="moon"></i>外观</span>
+              <div class="seg" id="setTheme">
+                <button data-v="system">自动</button><button data-v="light">浅色</button><button data-v="dark">深色</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="group-title">翻译</div>
+          <div class="card group">
+            <div class="row"><span class="label"><i class="tile" style="--c:#0a84ff" data-icon="translate"></i>中文默认译为</span><select id="setForeign" class="field compact"></select></div>
+            <label class="row"><span class="label"><i class="tile" style="--c:#ff9f0a" data-icon="copy"></i>译文自动复制</span><span class="switch"><input type="checkbox" id="setAutoCopy" /><span></span></span></label>
+          </div>
+
+          <div class="group-title">全局快捷键</div>
+          <div class="card group" id="shortcutGroup">
+            <div class="row"><span class="label"><i class="tile" style="--c:#8e8e93" data-icon="command"></i>显示 / 隐藏窗口</span><button class="shortcut" data-action="toggle"></button></div>
+            <div class="row"><span class="label"><i class="tile" style="--c:#0a84ff" data-icon="cursor"></i>划词翻译</span><button class="shortcut" data-action="selection"></button></div>
+            <div class="row"><span class="label"><i class="tile" style="--c:#ff375f" data-icon="scissors"></i>截图</span><button class="shortcut" data-action="capture"></button></div>
+          </div>
+          <p class="hint">点击后按下新的组合键 · Esc 取消 · Delete 清除</p>
+
+          <div class="group-title">权限</div>
+          <div class="card group">
+            <div class="row"><span class="label"><i class="tile" style="--c:#ff453a" data-icon="monitor"></i><span>屏幕录制<small>截图需要</small></span></span><span class="perm" id="permScreen"></span></div>
+            <div class="row"><span class="label"><i class="tile" style="--c:#0a84ff" data-icon="hand"></i><span>辅助功能<small>划词翻译需要</small></span></span><span class="perm" id="permAx"></span></div>
+          </div>
+
+          <div class="about">
+            <img class="about-logo" src="../img/logo_512.png" alt="EasyTranslate" />
+            <div class="about-name">EasyTranslate <span class="muted" id="appVersion"></span></div>
+            <div class="about-actions">
+              <button class="btn ghost sm" id="openRepo" data-icon="external">GitHub</button>
+              <button class="btn ghost sm danger" id="quitApp" data-icon="power">退出应用</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
